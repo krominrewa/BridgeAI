@@ -113,6 +113,34 @@ export function SettingsIcon({ className = base }: IconProps) {
   )
 }
 
+export function SpeakerIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" strokeLinejoin="round" />
+      <path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.6 7.6 0 0 1 0 11" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function StopIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="2" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function RepeatIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5" strokeLinecap="round" />
+      <path d="M20 4.5v4h-4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5" strokeLinecap="round" />
+      <path d="M4 19.5v-4h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function AlertIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

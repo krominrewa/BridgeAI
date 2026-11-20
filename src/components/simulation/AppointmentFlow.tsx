@@ -13,6 +13,7 @@ import type { StepProps } from './stepProps'
 import { BridgeBuddy, SettingsIcon } from '../icons'
 import { SUCCESS_STEP } from '../../simulation/appointmentState'
 import { useSettings } from '../../settings/SettingsContext'
+import { stopSpeech } from '../../speech/speechReader'
 
 const STEP_COMPONENTS = [HospitalStep, DepartmentStep, DoctorStep, ScheduleStep, ConfirmStep, SuccessStep]
 
@@ -23,10 +24,11 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
   const noticeRef = useRef<HTMLDivElement>(null)
   const { setOpen } = useSettings()
 
-  // 换步骤后把焦点交给新步骤的标题，键盘与读屏用户不用从头 Tab
+  // 换步骤后停止旧朗读，并把焦点交给新步骤的标题，键盘与读屏用户不用从头 Tab
   useEffect(() => {
     if (lastStep.current === state.step) return
     lastStep.current = state.step
+    stopSpeech()
     document.getElementById('step-heading')?.focus()
   }, [state.step])
 
@@ -75,7 +77,7 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
             {state.help ? (
               <HelpPanel
                 key={state.stats.hints}
-                text={state.help}
+                state={state}
                 onDismiss={() => {
                   dispatch({ type: 'dismissHelp' })
                   document.getElementById('help-button')?.focus()

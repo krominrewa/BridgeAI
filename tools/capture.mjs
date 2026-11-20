@@ -131,6 +131,14 @@ window.__qa = {
     }
     return false
   },
+  speechLabel: () => {
+    const el = document.getElementById('speech-toggle')
+    return el ? el.textContent.trim() : null
+  },
+  speechStatus: () => {
+    const el = document.getElementById('speech-status')
+    return el ? el.textContent.trim() : null
+  },
 }
 `
 
@@ -723,6 +731,274 @@ const SCENARIOS = [
       const ps = document.querySelector('.phone-scroll');
       return { report: __qa.report(), phoneOverflow: ps.scrollWidth - ps.clientWidth, wide: __qa.wide() }`,
   },
+  // ——— 第五阶段：语音朗读与智能教学助手 ———
+  {
+    name: 'sim-speech-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      document.getElementById('speech-toggle').click();
+      await __qa.wait(80);
+      const playing = { label: __qa.speechLabel(), status: __qa.speechStatus() };
+      if (playing.label !== '停止朗读') throw new Error('朗读状态未切换：' + playing.label);
+      if (playing.status !== '正在朗读提示内容') throw new Error('读屏状态未播报：' + playing.status);
+      await __qa.wait(120);
+      const engaged = { speaking: speechSynthesis.speaking, speaks: __speechCalls.speak, cancels: __speechCalls.cancel };
+      if (!engaged.speaking) throw new Error('语音未送入引擎');
+      await __qa.clickId('speech-replay');
+      const replay = { label: __qa.speechLabel(), speaks: __speechCalls.speak, cancels: __speechCalls.cancel };
+      if (replay.label !== '停止朗读' || replay.speaks !== 2) throw new Error('重新朗读异常：' + JSON.stringify(replay));
+      if (replay.cancels < replay.speaks) throw new Error('重读前未取消旧语音，可能叠加');
+      await __qa.clickId('speech-toggle');
+      const stopped = { label: __qa.speechLabel(), status: __qa.speechStatus(), speaking: speechSynthesis.speaking };
+      if (stopped.label !== '读给我听' || stopped.speaking) throw new Error('停止朗读异常：' + JSON.stringify(stopped));
+      if (stopped.status !== '朗读已停止') throw new Error('停止后读屏状态未更新');
+      return { playing, engaged, replay, stopped, overflow: __qa.overflow(), wide: __qa.wide() }`,
+  },
+  {
+    name: 'sim-speech-speaking-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
+      const indicator = document.body.innerText.includes('正在朗读，读完会自动停止');
+      if (!indicator) throw new Error('缺少可见朗读状态');
+      return { label: __qa.speechLabel(), status: __qa.speechStatus(), indicator }`,
+  },
+  {
+    name: 'sim-speech-step-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
+      if (!speechSynthesis.speaking) throw new Error('朗读未开始');
+      await __qa.click('下一步');
+      const afterNext = { speaking: speechSynthesis.speaking, heading: __qa.heading(), panel: Boolean(document.getElementById('help-panel')) };
+      if (afterNext.speaking || afterNext.panel) throw new Error('切换步骤后旧语音未停止');
+      await __qa.click('我需要帮助');
+      const reopened = { label: __qa.speechLabel() };
+      if (reopened.label !== '读给我听') throw new Error('新步骤朗读状态未复位');
+      await __qa.clickId('speech-toggle');
+      await __qa.click('我明白了，继续操作');
+      const afterDismiss = { speaking: speechSynthesis.speaking, panel: Boolean(document.getElementById('help-panel')) };
+      if (afterDismiss.speaking || afterDismiss.panel) throw new Error('关闭提示后语音未停止');
+      return { afterNext, reopened, afterDismiss }`,
+  },
+  {
+    name: 'sim-speech-replay-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      const toggle = document.getElementById('speech-toggle');
+      const replay = document.getElementById('speech-replay');
+      toggle.click(); replay.click(); replay.click();
+      await __qa.wait(140);
+      const burst = { speak: __speechCalls.speak, cancel: __speechCalls.cancel };
+      if (burst.speak > 3 || burst.cancel < burst.speak) throw new Error('快速连点出现叠加：' + JSON.stringify(burst));
+      if (!speechSynthesis.speaking) throw new Error('连点后应仍在朗读');
+      await __qa.wait(80); replay.click(); await __qa.wait(140);
+      const spaced = { speak: __speechCalls.speak, cancel: __speechCalls.cancel };
+      if (spaced.speak !== burst.speak + 1) throw new Error('重读未产生新语音：' + JSON.stringify(spaced));
+      if (spaced.cancel < spaced.speak) throw new Error('重读前未取消旧语音');
+      const label = __qa.speechLabel();
+      if (label !== '停止朗读') throw new Error('连点后状态异常：' + label);
+      return { burst, spaced, label, texts: __speechCalls.texts }`,
+  },
+  {
+    name: 'sim-speech-unsupported-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    noSpeech: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      const hasToggle = Boolean(document.getElementById('speech-toggle'));
+      const note = (document.getElementById('speech-unavailable') || {}).textContent || null;
+      const text = (document.getElementById('help-text') || {}).textContent || '';
+      if (hasToggle) throw new Error('不支持时不应显示朗读按钮');
+      if (!note || !note.includes('不支持朗读')) throw new Error('缺少不支持说明');
+      if (!text.includes('科室')) throw new Error('文字提示丢失');
+      return { hasToggle, note, textLen: text.length, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-speech-keyboard-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/simulation',
+    speechStub: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      document.getElementById('speech-toggle').focus();
+      return { focused: document.activeElement.id }`,
+    keys: ['Enter'],
+    check: `const label = __qa.speechLabel();
+      const active = document.activeElement.id;
+      const status = __qa.speechStatus();
+      if (label !== '停止朗读' || active !== 'speech-toggle') throw new Error('键盘朗读失败：' + label + '/' + active);
+      return { label, active, status }`,
+  },
+  {
+    name: 'sim-speech-real-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      const supported = Boolean(window.speechSynthesis) && typeof window.SpeechSynthesisUtterance === 'function';
+      if (!supported) throw new Error('此浏览器应有 speechSynthesis');
+      const orig = speechSynthesis.speak.bind(speechSynthesis);
+      window.__realSpeak = { calls: 0, lang: null, voiceLang: null };
+      speechSynthesis.speak = (u) => {
+        window.__realSpeak.calls += 1; window.__realSpeak.lang = u.lang;
+        window.__realSpeak.voiceLang = u.voice ? u.voice.lang : null;
+        return orig(u)
+      };
+      document.getElementById('speech-toggle').click();
+      await __qa.wait(140);
+      const submitted = { ...window.__realSpeak };
+      if (submitted.calls < 1) throw new Error('未向真实引擎提交朗读');
+      if (submitted.lang !== 'zh-CN') throw new Error('朗读未设置中文：' + submitted.lang);
+      const label = __qa.speechLabel();
+      const status = __qa.speechStatus();
+      if (label !== '停止朗读' && label !== '读给我听') throw new Error('朗读按钮状态异常：' + label);
+      document.getElementById('speech-toggle').click();
+      await __qa.wait(140);
+      const textOk = (document.getElementById('help-text') || {}).textContent.includes('科室');
+      if (!textOk) throw new Error('朗读过程中文字提示丢失');
+      if (speechSynthesis.pending > 0) throw new Error('真实引擎出现排队叠加');
+      return { supported, submitted, label, status, textOk, pending: speechSynthesis.pending,
+        voices: speechSynthesis.getVoices().length, finalLabel: __qa.speechLabel() }`,
+  },
+  {
+    name: 'sim-speech-xl-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    largeText: '24px',
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
+      const t = document.getElementById('speech-toggle').getBoundingClientRect();
+      document.getElementById('speech-replay').scrollIntoView({ block: 'nearest' });
+      await __qa.wait(150);
+      const r = document.getElementById('speech-replay').getBoundingClientRect();
+      const bar = document.getElementById('flow-action-bar').getBoundingClientRect();
+      const ps = document.querySelector('.phone-scroll');
+      const wide = __qa.wide();
+      if (t.height < 52) throw new Error('特大字号下朗读按钮过小');
+      if (r.bottom > bar.top + 1) throw new Error('朗读按钮被操作栏遮挡');
+      if (wide.length) throw new Error('特大字号横向溢出：' + JSON.stringify(wide));
+      return { label: __qa.speechLabel(), toggleW: Math.round(t.width), toggleH: Math.round(t.height),
+        replayW: Math.round(r.width), reachable: r.bottom <= bar.top + 1, windowScrollY: Math.round(scrollY),
+        phoneOverflow: ps.scrollWidth - ps.clientWidth, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-speech-reduced-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    reducedMotion: true,
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
+      const dot = document.querySelector('#help-panel .animate-pulse-soft');
+      const duration = dot ? getComputedStyle(dot).animationDuration : null;
+      const motion = __qa.attrs().motion;
+      if (motion !== 'reduce') throw new Error('减少动画未生效');
+      if (duration !== '0.001ms' && duration !== '1e-06s') throw new Error('朗读指示动画未随减少动画关闭：' + duration);
+      return { motion, label: __qa.speechLabel(), dotDuration: duration,
+        indicatorText: document.body.innerText.includes('正在朗读，读完会自动停止') }`,
+  },
+  {
+    name: 'sim-ai-help-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      const initial = __qa.help();
+      if (initial.includes('不是实时 AI 回答')) return { skipped: 'AI 代理未配置，走本地规则' };
+      await __qa.wait(150);
+      const loading = __qa.help().includes('桥桥正在思考');
+      let ready = false;
+      for (let i = 0; i < 30; i++) { if (__qa.help().includes('AI 智能指导')) { ready = true; break } await __qa.wait(200) }
+      if (!ready) throw new Error('AI 指导未返回：' + __qa.help().slice(0, 120));
+      const text = document.getElementById('help-text').textContent;
+      if (!text.includes('【智能桥桥】')) throw new Error('AI 文本未显示：' + text.slice(0, 80));
+      const orig = speechSynthesis.speak.bind(speechSynthesis);
+      window.__aiSpeakText = null;
+      speechSynthesis.speak = (u) => { window.__aiSpeakText = u.text; return orig(u) };
+      document.getElementById('speech-toggle').click();
+      await __qa.wait(140);
+      if (!window.__aiSpeakText || !window.__aiSpeakText.includes('【智能桥桥】')) throw new Error('AI 文本未送入朗读');
+      const speechLabel = __qa.speechLabel();
+      document.getElementById('speech-toggle').click();
+      return { loading, badge: document.getElementById('help-source').textContent, text, speechLabel, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-ai-error-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(3);
+      const found = await __qa.pickDateWithFull();
+      if (!found) throw new Error('没有约满时间段可构造错误');
+      await __qa.pickDisabled();
+      const notice = __qa.notice();
+      await __qa.click('我需要帮助');
+      const initial = __qa.help();
+      if (initial.includes('不是实时 AI 回答')) return { skipped: 'AI 代理未配置' };
+      let ready = false;
+      for (let i = 0; i < 30; i++) { if (__qa.help().includes('AI 智能指导')) { ready = true; break } await __qa.wait(200) }
+      if (!ready) throw new Error('AI 指导未返回');
+      const text = document.getElementById('help-text').textContent;
+      if (!text.includes('约满')) throw new Error('AI 指导未结合错误情况：' + text.slice(0, 100));
+      document.getElementById('help-panel').scrollIntoView({ block: 'nearest' });
+      await __qa.wait(200);
+      return { notice, text, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-ai-fallback-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+      let outcome = null;
+      for (let i = 0; i < 40; i++) {
+        const t = __qa.help();
+        if (t.includes('智能助手暂不可用')) { outcome = 'failed'; break }
+        if (t.includes('AI 智能指导')) { outcome = 'ai'; break }
+        if (t.includes('不是实时 AI 回答')) { outcome = 'local'; break }
+        await __qa.wait(200)
+      }
+      if (outcome !== 'failed') return { skipped: '仅代理故障时验证降级', outcome };
+      const text = document.getElementById('help-text').textContent;
+      if (!text.includes('科室')) throw new Error('降级后本地提示丢失');
+      if (!document.getElementById('speech-toggle')) throw new Error('降级后朗读按钮丢失');
+      return { badge: document.getElementById('help-source').textContent, text: text.slice(0, 80), overflow: __qa.overflow() }`,
+  },
 ]
 
 async function findChrome() {
@@ -847,6 +1123,24 @@ async function main() {
         try { sessionStorage.removeItem('${STORAGE_KEY}') } catch (e) {}
         try { localStorage.removeItem('bridgeai:display:v1') } catch (e) {}
         window.__storageCleared = true
+      }
+      if (location.search.includes('speechstub=1')) {
+        const calls = { speak: 0, cancel: 0, texts: [] }
+        window.__speechCalls = calls
+        const fake = {
+          speaking: false, pending: false, paused: false,
+          getVoices: () => [],
+          addEventListener: () => {}, removeEventListener: () => {},
+          speak: (u) => { calls.speak += 1; calls.texts.push(String(u.text).slice(0, 30)); fake.speaking = true },
+          cancel: () => { calls.cancel += 1; fake.speaking = false },
+          pause: () => {}, resume: () => {},
+        }
+        Object.defineProperty(window, 'speechSynthesis', { value: fake, configurable: true })
+        window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; this.lang = ''; this.voice = null; this.rate = 1; this.pitch = 1 } }
+      }
+      if (location.search.includes('nospeech=1')) {
+        Object.defineProperty(window, 'speechSynthesis', { value: undefined, configurable: true })
+        Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: undefined, configurable: true })
       }`,
     })
 
@@ -871,7 +1165,8 @@ async function main() {
 
       const loaded = cdp.once('Page.loadEventFired')
       // 加查询参数强制整页加载：仅 hash 变化时 Chrome 不会触发 load 事件
-      await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}${scenario.route}` })
+      const speechFlags = `${scenario.speechStub ? '&speechstub=1' : ''}${scenario.noSpeech ? '&nospeech=1' : ''}`
+      await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}${speechFlags}${scenario.route}` })
       await loaded
       await sleep(700)
       await cdp.evaluate(HELPERS)

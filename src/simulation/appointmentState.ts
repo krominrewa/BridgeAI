@@ -132,7 +132,7 @@ function bump(stats: FlowStats, step: number, key: 'errors' | 'hints'): FlowStat
   return key === 'errors' ? { ...stats, errors: stats.errors + 1, byStep } : { ...stats, hints: stats.hints + 1, byStep }
 }
 
-function helpRequest(state: FlowState): HelpRequest {
+export function helpRequest(state: FlowState): HelpRequest {
   const slotFull =
     Boolean(state.doctorId && state.date && state.slotId) &&
     seatsLeft(state.doctorId ?? '', state.date ?? '', state.slotId ?? '') === 0
