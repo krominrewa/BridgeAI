@@ -1,1 +1,32 @@
-{"version":1,"name":"数字桥梁 BridgeAI","design":{"version":1,"pages":[{"path":"/","title":"Home"}],"capabilities":[]},"publication":{"actionId":"5875785b-90f9-40be-b6a4-96815982be21","projectId":"01a1f73d-6d67-71dc-acd7-ff4fb9df2bc1","siteId":"01a1f73d-6d67-7d7a-a3c2-da8567b7a9f1","deploymentId":"01a1f7df-3c6e-7c85-a700-4e562f0c4214","artifactSha256":"e65b7c7cf1e1e067b6461ed61f2c684ea93f85c86be2adb49644296c5f787612","indexSha256":"46027ac1052cacb1592b3ec515317c8213e4ca85ae0bfc4f6a018f295200675b","releaseId":"01a1f7df-9934-7bac-948f-4c5796b83b00","indexHtml":"PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9InpoLUNOIj4KICA8aGVhZD4KICAgIDxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgogICAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiIC8+CiAgICA8bWV0YQogICAgICBuYW1lPSJkZXNjcmlwdGlvbiIKICAgICAgY29udGVudD0i5pWw5a2X5qGl5qKBIEJyaWRnZUFJIOKAlOKAlCDpnaLlkJHogIHlubTkurrlj4rmlbDlrZfmioDog73ln7rnoYDoloTlvLHnvqTkvZPnmoQgQUkg5oOF5pmv5byP5pWw5a2X5oqA6IO95a2m5Lmg5bmz5Y+w77yM5Zyo5a6J5YWo55qE5qih5ouf5omL5py6546v5aKD5Lit5a2m5Lmg6aKE57qm5oyC5Y+3562J5pel5bi45oqA6IO944CCIgogICAgLz4KICAgIDxtZXRhIG5hbWU9InRoZW1lLWNvbG9yIiBjb250ZW50PSIjMWE3M2UwIiAvPgogICAgPHRpdGxlPuaVsOWtl+ahpeaigSBCcmlkZ2VBSSDCtyDot6jotormlbDlrZfpuL/msp/vvIzorqnnp5HmioDop6bmiYvlj6/lj4o8L3RpdGxlPgogICAgPHNjcmlwdCB0eXBlPSJtb2R1bGUiIGNyb3Nzb3JpZ2luIHNyYz0iLi9hc3NldHMvaW5kZXgtSVd1N2VqT0QuanMiPjwvc2NyaXB0PgogICAgPGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBjcm9zc29yaWdpbiBocmVmPSIuL2Fzc2V0cy9pbmRleC1DS1o2MUxrcy5jc3MiPgogIDwvaGVhZD4KICA8Ym9keT4KICAgIDxkaXYgaWQ9InJvb3QiPjwvZGl2PgogIDwvYm9keT4KPC9odG1sPgo="},"actionId":"5875785b-90f9-40be-b6a4-96815982be21","projectId":"01a1f73d-6d67-71dc-acd7-ff4fb9df2bc1","siteId":"01a1f73d-6d67-7d7a-a3c2-da8567b7a9f1","deploymentId":"01a1f7df-3c6e-7c85-a700-4e562f0c4214","artifactSha256":"e65b7c7cf1e1e067b6461ed61f2c684ea93f85c86be2adb49644296c5f787612","indexSha256":"46027ac1052cacb1592b3ec515317c8213e4ca85ae0bfc4f6a018f295200675b","releaseId":"01a1f7df-9934-7bac-948f-4c5796b83b00","indexHtml":"PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9InpoLUNOIj4KICA8aGVhZD4KICAgIDxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgogICAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiIC8+CiAgICA8bWV0YQogICAgICBuYW1lPSJkZXNjcmlwdGlvbiIKICAgICAgY29udGVudD0i5pWw5a2X5qGl5qKBIEJyaWRnZUFJIOKAlOKAlCDpnaLlkJHogIHlubTkurrlj4rmlbDlrZfmioDog73ln7rnoYDoloTlvLHnvqTkvZPnmoQgQUkg5oOF5pmv5byP5pWw5a2X5oqA6IO95a2m5Lmg5bmz5Y+w77yM5Zyo5a6J5YWo55qE5qih5ouf5omL5py6546v5aKD5Lit5a2m5Lmg6aKE57qm5oyC5Y+3562J5pel5bi45oqA6IO944CCIgogICAgLz4KICAgIDxtZXRhIG5hbWU9InRoZW1lLWNvbG9yIiBjb250ZW50PSIjMWE3M2UwIiAvPgogICAgPHRpdGxlPuaVsOWtl+ahpeaigSBCcmlkZ2VBSSDCtyDot6jotormlbDlrZfpuL/msp/vvIzorqnnp5HmioDop6bmiYvlj6/lj4o8L3RpdGxlPgogICAgPHNjcmlwdCB0eXBlPSJtb2R1bGUiIGNyb3Nzb3JpZ2luIHNyYz0iLi9hc3NldHMvaW5kZXgtSVd1N2VqT0QuanMiPjwvc2NyaXB0PgogICAgPGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBjcm9zc29yaWdpbiBocmVmPSIuL2Fzc2V0cy9pbmRleC1DS1o2MUxrcy5jc3MiPgogIDwvaGVhZD4KICA8Ym9keT4KICAgIDxkaXYgaWQ9InJvb3QiPjwvZGl2PgogIDwvYm9keT4KPC9odG1sPgo="}
+{
+  "version": 1,
+  "name": "数字桥梁 BridgeAI",
+  "design": {
+    "version": 1,
+    "pages": [
+      {
+        "path": "/",
+        "title": "Home"
+      }
+    ],
+    "capabilities": []
+  },
+  "publication": {
+    "actionId": "841d8e17-c237-4534-9eda-ab5a58f24b19",
+    "projectId": "01a1f73d-6d67-71dc-acd7-ff4fb9df2bc1",
+    "siteId": "01a1f73d-6d67-7d7a-a3c2-da8567b7a9f1",
+    "deploymentId": "01a1f811-8ff5-7b9c-a2fb-2fa706e1433e",
+    "artifactSha256": "93f6039a8339c6389e52e81618ddaf289504f247cab636c20732e18220d21ea1",
+    "indexSha256": "de91d576706c194744a605ad52a058f0e6751143f29d58b950176b8043845be4",
+    "indexHtml": "PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9InpoLUNOIj4KICA8aGVhZD4KICAgIDxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgogICAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAsIHZpZXdwb3J0LWZpdD1jb3ZlciIgLz4KICAgIDxtZXRhCiAgICAgIG5hbWU9ImRlc2NyaXB0aW9uIgogICAgICBjb250ZW50PSLmlbDlrZfmoaXmooEgQnJpZGdlQUkg4oCU4oCUIOmdouWQkeiAgeW5tOS6uuWPiuaVsOWtl+aKgOiDveWfuuehgOiWhOW8see+pOS9k+eahCBBSSDmg4Xmma/lvI/mlbDlrZfmioDog73lrabkuaDlubPlj7DvvIzlnKjlronlhajnmoTmqKHmi5/miYvmnLrnjq/looPkuK3lrabkuaDpooTnuqbmjILlj7fnrYnml6XluLjmioDog73jgIIiCiAgICAvPgogICAgPG1ldGEgbmFtZT0idGhlbWUtY29sb3IiIGNvbnRlbnQ9IiMxYTczZTAiIC8+CiAgICA8dGl0bGU+5pWw5a2X5qGl5qKBIEJyaWRnZUFJIMK3IOi3qOi2iuaVsOWtl+m4v+ayn++8jOiuqeenkeaKgOinpuaJi+WPr+WPijwvdGl0bGU+CiAgICA8c2NyaXB0IHR5cGU9Im1vZHVsZSIgY3Jvc3NvcmlnaW4gc3JjPSIuL2Fzc2V0cy9pbmRleC1DeUcwR0hfZC5qcyI+PC9zY3JpcHQ+CiAgICA8bGluayByZWw9InN0eWxlc2hlZXQiIGNyb3Nzb3JpZ2luIGhyZWY9Ii4vYXNzZXRzL2luZGV4LURNeWN3bW56LmNzcyI+CiAgPC9oZWFkPgogIDxib2R5PgogICAgPGRpdiBpZD0icm9vdCI+PC9kaXY+CiAgPC9ib2R5Pgo8L2h0bWw+Cg==",
+    "releaseId": "01a1f811-e1ce-7930-ace6-3a2dc90d5de3"
+  },
+  "actionId": "841d8e17-c237-4534-9eda-ab5a58f24b19",
+  "projectId": "01a1f73d-6d67-71dc-acd7-ff4fb9df2bc1",
+  "siteId": "01a1f73d-6d67-7d7a-a3c2-da8567b7a9f1",
+  "deploymentId": "01a1f811-8ff5-7b9c-a2fb-2fa706e1433e",
+  "artifactSha256": "93f6039a8339c6389e52e81618ddaf289504f247cab636c20732e18220d21ea1",
+  "indexSha256": "de91d576706c194744a605ad52a058f0e6751143f29d58b950176b8043845be4",
+  "indexHtml": "PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9InpoLUNOIj4KICA8aGVhZD4KICAgIDxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgogICAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAsIHZpZXdwb3J0LWZpdD1jb3ZlciIgLz4KICAgIDxtZXRhCiAgICAgIG5hbWU9ImRlc2NyaXB0aW9uIgogICAgICBjb250ZW50PSLmlbDlrZfmoaXmooEgQnJpZGdlQUkg4oCU4oCUIOmdouWQkeiAgeW5tOS6uuWPiuaVsOWtl+aKgOiDveWfuuehgOiWhOW8see+pOS9k+eahCBBSSDmg4Xmma/lvI/mlbDlrZfmioDog73lrabkuaDlubPlj7DvvIzlnKjlronlhajnmoTmqKHmi5/miYvmnLrnjq/looPkuK3lrabkuaDpooTnuqbmjILlj7fnrYnml6XluLjmioDog73jgIIiCiAgICAvPgogICAgPG1ldGEgbmFtZT0idGhlbWUtY29sb3IiIGNvbnRlbnQ9IiMxYTczZTAiIC8+CiAgICA8dGl0bGU+5pWw5a2X5qGl5qKBIEJyaWRnZUFJIMK3IOi3qOi2iuaVsOWtl+m4v+ayn++8jOiuqeenkeaKgOinpuaJi+WPr+WPijwvdGl0bGU+CiAgICA8c2NyaXB0IHR5cGU9Im1vZHVsZSIgY3Jvc3NvcmlnaW4gc3JjPSIuL2Fzc2V0cy9pbmRleC1DeUcwR0hfZC5qcyI+PC9zY3JpcHQ+CiAgICA8bGluayByZWw9InN0eWxlc2hlZXQiIGNyb3Nzb3JpZ2luIGhyZWY9Ii4vYXNzZXRzL2luZGV4LURNeWN3bW56LmNzcyI+CiAgPC9oZWFkPgogIDxib2R5PgogICAgPGRpdiBpZD0icm9vdCI+PC9kaXY+CiAgPC9ib2R5Pgo8L2h0bWw+Cg==",
+  "releaseId": "01a1f811-e1ce-7930-ace6-3a2dc90d5de3"
+}
