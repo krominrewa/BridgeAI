@@ -1,5 +1,5 @@
 import { buildDayOptions, findDoctor, findSlot, seatsLeft, type DayOption } from '../../../data/appointment'
-import { CheckIcon } from '../../icons'
+import { CheckIcon, ClockIcon } from '../../icons'
 import ChoiceButton from '../ChoiceButton'
 import StepHeading from '../StepHeading'
 import type { StepProps } from '../stepProps'
@@ -16,8 +16,10 @@ function DayButton({ day, selected, onClick }: DayButtonProps) {
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`flex min-h-[84px] w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-3 text-center transition-colors duration-150 ${
-        selected ? 'border-brand-600 bg-brand-50' : 'border-brand-100 bg-white hover:border-brand-400'
+      className={`flex min-h-[92px] w-full flex-col items-center justify-center gap-0.5 rounded-2xl border-2 px-1 py-2 text-center transition-all duration-150 ${
+        selected
+          ? 'border-brand-600 bg-brand-50 shadow-card'
+          : 'border-brand-100 bg-white hover:border-brand-400 hover:shadow-card active:scale-[0.99]'
       }`}
     >
       <span className="text-xl font-bold leading-tight text-ink">{day.relative || day.weekday}</span>
@@ -29,8 +31,21 @@ function DayButton({ day, selected, onClick }: DayButtonProps) {
           </span>
           已选择
         </span>
-      ) : null}
+      ) : (
+        <span className="text-base leading-tight text-ink-muted">{day.relative ? day.weekday : '可预约'}</span>
+      )}
     </button>
+  )
+}
+
+function GroupTitle({ index, text }: { index: number; text: string }) {
+  return (
+    <h3 className="mt-5 flex items-center gap-2 text-lg font-bold text-ink">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
+        {index}
+      </span>
+      {text}
+    </h3>
   )
 }
 
@@ -48,8 +63,8 @@ export default function ScheduleStep({ state, dispatch }: StepProps) {
         hint="先点一个日期，再点一个时间段。写着“已约满”的时间不能选，换一个就好。"
       />
 
-      <h3 className="mt-5 text-lg font-bold text-ink">第一件事：哪天去看病？</h3>
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <GroupTitle index={1} text="哪天去看病？" />
+      <div className="mt-3 grid grid-cols-3 gap-2">
         {days.map((day) => (
           <DayButton
             key={day.date}
@@ -60,7 +75,7 @@ export default function ScheduleStep({ state, dispatch }: StepProps) {
         ))}
       </div>
 
-      <h3 className="mt-6 text-lg font-bold text-ink">第二件事：几点去看病？</h3>
+      <GroupTitle index={2} text="几点去看病？" />
       {state.date ? null : (
         <p className="mt-2 text-lg leading-relaxed text-ink-soft">请先在上面选一个日期，这里才会显示可约的时间。</p>
       )}
@@ -73,7 +88,15 @@ export default function ScheduleStep({ state, dispatch }: StepProps) {
             <ChoiceButton
               key={slot.id}
               title={`${slot.period} ${slot.label}`}
-              meta={!state.date ? '先选日期' : full ? '已约满，请换其他时间' : `还剩 ${seats} 个号`}
+              meta={full ? '这个时间不能选，换一个就好' : undefined}
+              icon={<ClockIcon />}
+              tag={
+                !state.date
+                  ? { text: '先选日期', tone: 'neutral' }
+                  : full
+                    ? { text: '已约满', tone: 'amber' }
+                    : { text: `还剩 ${seats} 个号`, tone: 'lagoon' }
+              }
               selected={state.slotId === slot.id}
               unavailable={unavailable}
               onClick={() => {

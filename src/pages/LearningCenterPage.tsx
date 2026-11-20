@@ -1,6 +1,7 @@
 import CourseCard from '../components/CourseCard'
 import BackLink from '../components/BackLink'
 import { CalendarIcon, ShieldIcon } from '../components/icons'
+import { STEP_TITLES } from '../simulation/appointmentState'
 
 const UPCOMING = ['数字生活缴费（水电燃气）', '出行打车与公交查询', '医保与电子凭证查询']
 
@@ -28,6 +29,7 @@ export default function LearningCenterPage() {
           title="模拟预约挂号"
           summary="从选择医院开始，练习选科室、选医生、挑看病时间，核对信息后看到预约成功页面。共 6 步，每一步都能点“我需要帮助”看提示，完成后有学习小结。全程在模拟界面中完成，出错可随时返回修改。"
           facts={['约 10 分钟', '共 6 个步骤', '无需真实账号']}
+          steps={STEP_TITLES}
         />
       </section>
 
@@ -50,12 +52,13 @@ export default function LearningCenterPage() {
         <h2 className="text-2xl font-bold text-ink">正在筹备中的课程</h2>
         <ul className="mt-5 grid gap-4 sm:grid-cols-3">
           {UPCOMING.map((course) => (
-            <li
-              key={course}
-              className="rounded-2xl border border-dashed border-brand-200 bg-brand-50/40 px-5 py-6 text-lg text-ink-muted"
-            >
-              {course}
-              <span className="mt-2 block text-base text-brand-600">即将上线</span>
+            <li key={course} className="h-full">
+              <CourseCard
+                locked
+                badge="筹备中"
+                title={course}
+                summary="这门课还在准备中，会沿用同样的模拟练习方式。"
+              />
             </li>
           ))}
         </ul>

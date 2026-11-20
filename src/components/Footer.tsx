@@ -3,7 +3,7 @@ import { LogoMark } from './icons'
 
 export default function Footer() {
   return (
-    <footer className="mt-auto bg-gradient-to-br from-brand-800 via-brand-700 to-lagoon-700 text-white">
+    <footer className="mt-auto bg-gradient-to-br from-brand-800 via-brand-700 to-lagoon-800 text-white">
       <div className="mx-auto max-w-6xl px-5 py-14">
         <p className="text-center text-3xl font-bold leading-snug sm:text-4xl">
           科技向善，让每个人都能享受数字生活
@@ -36,7 +36,7 @@ export default function Footer() {
               </a>
             </li>
           </ul>
-          <p className="mt-2 text-center text-base text-brand-200">
+          <p className="mt-2 text-center text-base text-brand-100">
             © 2026 数字桥梁 BridgeAI · 2026 Qoder 高校创造力大赛 · Hack4Good 技术向善赛道
           </p>
         </div>

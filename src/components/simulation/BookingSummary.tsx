@@ -6,6 +6,7 @@ import {
   findHospital,
   slotText,
 } from '../../data/appointment'
+import { TicketIcon } from '../icons'
 import type { FlowState } from '../../simulation/appointmentState'
 
 function visitTimeText(state: FlowState): string {
@@ -16,9 +17,11 @@ function visitTimeText(state: FlowState): string {
 
 type BookingSummaryProps = {
   state: FlowState
+  title?: string
+  code?: string | null
 }
 
-export default function BookingSummary({ state }: BookingSummaryProps) {
+export default function BookingSummary({ state, title, code }: BookingSummaryProps) {
   const hospital = findHospital(state.hospitalId)
   const department = findDepartment(state.departmentId)
   const doctor = findDoctor(state.doctorId)
@@ -33,13 +36,31 @@ export default function BookingSummary({ state }: BookingSummaryProps) {
   ]
 
   return (
-    <dl className="mt-4 divide-y divide-brand-50 rounded-2xl border-2 border-brand-100 bg-white">
-      {rows.map((row) => (
-        <div key={row.label} className="px-4 py-3">
-          <dt className="text-base text-ink-muted">{row.label}</dt>
-          <dd className="mt-0.5 text-lg font-semibold leading-snug text-ink">{row.value}</dd>
+    <section className="mt-4 overflow-hidden rounded-2xl border-2 border-brand-100 bg-white">
+      {title ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-100 bg-brand-50 px-4 py-2.5">
+          <p className="flex items-center gap-2 text-lg font-bold text-brand-800">
+            <span className="h-6 w-6 shrink-0">
+              <TicketIcon />
+            </span>
+            {title}
+          </p>
+          <span className="badge bg-white text-brand-800">练习专用</span>
         </div>
-      ))}
-    </dl>
+      ) : null}
+      {code ? (
+        <p className="border-b border-dashed border-brand-200 px-4 py-3 text-[22px] font-bold tracking-wide text-ink">
+          {code}
+        </p>
+      ) : null}
+      <dl className="divide-y divide-brand-50">
+        {rows.map((row) => (
+          <div key={row.label} className="px-4 py-2.5">
+            <dt className="text-base text-ink-muted">{row.label}</dt>
+            <dd className="mt-0.5 text-lg font-semibold leading-snug text-ink">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }

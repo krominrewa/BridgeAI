@@ -31,8 +31,9 @@ export default {
         ink: {
           DEFAULT: '#0f2338',
           soft: '#3d5670',
-          muted: '#6b8199',
+          muted: '#54688a',
         },
+        paper: '#f5f8fb',
       },
       fontFamily: {
         sans: [
@@ -61,10 +62,16 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.55' },
         },
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.7)' },
+          '70%': { transform: 'scale(1.06)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.45s ease-out both',
         'pulse-soft': 'pulse-soft 1.6s ease-in-out infinite',
+        'pop-in': 'pop-in 0.4s ease-out both',
       },
     },
   },

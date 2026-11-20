@@ -5,11 +5,11 @@ type StepHeadingProps = {
 
 export default function StepHeading({ title, hint }: StepHeadingProps) {
   return (
-    <div className="mt-5">
-      <h2 id="step-heading" tabIndex={-1} className="text-2xl font-bold leading-snug text-ink">
+    <div className="mt-4">
+      <h2 id="step-heading" tabIndex={-1} className="text-[22px] font-bold leading-snug text-ink">
         {title}
       </h2>
-      <p className="mt-2 text-lg leading-relaxed text-ink-soft">{hint}</p>
+      <p className="mt-1.5 text-lg leading-relaxed text-ink-soft">{hint}</p>
     </div>
   )
 }

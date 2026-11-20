@@ -42,7 +42,7 @@ export default function NavBar({ current }: NavBarProps) {
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex min-h-[52px] items-center rounded-full px-5 text-lg font-semibold transition-colors ${
                     isActive
-                      ? 'bg-brand-600 text-white'
+                      ? 'bg-brand-700 text-white'
                       : 'text-ink-soft hover:bg-brand-50 hover:text-brand-700'
                   }`}
                 >

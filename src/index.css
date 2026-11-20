@@ -15,7 +15,7 @@
 
   /* 大尺寸、高对比的键盘焦点提示，方便老年用户与键盘操作 */
   :focus-visible {
-    @apply outline-none ring-4 ring-brand-300 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-[3px] ring-brand-600 ring-offset-2 ring-offset-white;
   }
 
   ::selection {
@@ -26,23 +26,53 @@
 @layer components {
   .btn {
     @apply inline-flex min-h-[60px] items-center justify-center gap-3 rounded-full px-8 text-xl font-semibold
-      transition-all duration-200 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50;
+      transition-all duration-200 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50
+      aria-disabled:cursor-not-allowed aria-disabled:opacity-60;
   }
 
   .btn-primary {
-    @apply bg-brand-600 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-card-hover;
+    @apply bg-brand-600 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-card-hover active:bg-brand-800;
   }
 
   .btn-secondary {
-    @apply border-2 border-brand-600 bg-white text-brand-700 hover:-translate-y-0.5 hover:bg-brand-50;
+    @apply border-2 border-brand-600 bg-white text-brand-700 hover:-translate-y-0.5 hover:bg-brand-50 active:bg-brand-100;
   }
 
   .btn-ghost {
     @apply min-h-[52px] px-6 text-lg text-ink-soft hover:bg-brand-50 hover:text-brand-700;
   }
 
+  /* 教学帮助入口：比主操作轻一档，避免与“下一步”争夺注意力 */
+  .btn-help {
+    @apply min-h-[52px] border-2 border-lagoon-300 bg-white px-4 text-lg font-semibold text-lagoon-800
+      hover:bg-lagoon-50 active:bg-lagoon-100;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-base font-semibold leading-snug;
+  }
+
   .surface-card {
-    @apply rounded-3xl border border-brand-100 bg-white p-7 shadow-card transition-all duration-200;
+    @apply rounded-3xl border border-brand-100 bg-white p-6 shadow-card transition-all duration-200 sm:p-7;
+  }
+
+  /* 手机屏幕内的滚动区域：保留可见滚动条，方便老年用户感知还有内容 */
+  .phone-scroll {
+    scrollbar-color: theme('colors.brand.300') theme('colors.brand.50');
+    scrollbar-width: thin;
+  }
+
+  .phone-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .phone-scroll::-webkit-scrollbar-track {
+    background: theme('colors.brand.50');
+  }
+
+  .phone-scroll::-webkit-scrollbar-thumb {
+    background: theme('colors.brand.300');
+    border-radius: 9999px;
   }
 
   /* 键盘用户按 Tab 时才出现，尺寸与普通按钮一致 */
