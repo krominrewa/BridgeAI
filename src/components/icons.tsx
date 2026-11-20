@@ -103,6 +103,16 @@ export function CheckIcon({ className = base }: IconProps) {
   )
 }
 
+export function SettingsIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 7h9M19 7h1M4 17h3M13 17h7" strokeLinecap="round" />
+      <circle cx="16" cy="7" r="2.4" />
+      <circle cx="10" cy="17" r="2.4" />
+    </svg>
+  )
+}
+
 export function AlertIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

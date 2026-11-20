@@ -10,8 +10,9 @@ import HospitalStep from './steps/HospitalStep'
 import ScheduleStep from './steps/ScheduleStep'
 import SuccessStep from './steps/SuccessStep'
 import type { StepProps } from './stepProps'
-import { BridgeBuddy } from '../icons'
+import { BridgeBuddy, SettingsIcon } from '../icons'
 import { SUCCESS_STEP } from '../../simulation/appointmentState'
+import { useSettings } from '../../settings/SettingsContext'
 
 const STEP_COMPONENTS = [HospitalStep, DepartmentStep, DoctorStep, ScheduleStep, ConfirmStep, SuccessStep]
 
@@ -20,6 +21,7 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
   const finished = state.step === SUCCESS_STEP
   const lastStep = useRef(state.step)
   const noticeRef = useRef<HTMLDivElement>(null)
+  const { setOpen } = useSettings()
 
   // 换步骤后把焦点交给新步骤的标题，键盘与读屏用户不用从头 Tab
   useEffect(() => {
@@ -28,10 +30,13 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
     document.getElementById('step-heading')?.focus()
   }, [state.step])
 
-  // 错误提示出现时滚进可视区域，保证用户立刻看见反馈
+  // 错误提示出现时焦点移到提示并滚进可视区域，键盘与读屏用户立刻感知反馈
   useEffect(() => {
-    if (state.noticeSeq > 0) noticeRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [state.noticeSeq])
+    if (state.noticeSeq > 0 && state.notice) {
+      noticeRef.current?.focus({ preventScroll: true })
+      noticeRef.current?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [state.noticeSeq, state.notice])
 
   return (
     <>
@@ -40,19 +45,33 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
 
         {finished ? null : (
           <>
-            <button
-              type="button"
-              id="help-button"
-              onClick={() => dispatch({ type: 'help' })}
-              aria-expanded={Boolean(state.help)}
-              aria-controls="help-panel"
-              className="btn btn-help mt-2 w-full"
-            >
-              <span className="h-6 w-6">
-                <BridgeBuddy />
-              </span>
-              我需要帮助
-            </button>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                id="help-button"
+                onClick={() => dispatch({ type: 'help' })}
+                aria-expanded={Boolean(state.help)}
+                aria-controls="help-panel"
+                className="btn btn-help min-w-0 flex-1 basis-[12rem]"
+              >
+                <span className="h-6 w-6">
+                  <BridgeBuddy />
+                </span>
+                我需要帮助
+              </button>
+              <button
+                type="button"
+                id="settings-button-sim"
+                onClick={() => setOpen(true)}
+                aria-haspopup="dialog"
+                className="btn btn-help shrink-0 px-3"
+              >
+                <span className="h-6 w-6">
+                  <SettingsIcon />
+                </span>
+                显示与辅助
+              </button>
+            </div>
             {state.help ? (
               <HelpPanel
                 key={state.stats.hints}
@@ -68,7 +87,7 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
 
         <StepComponent state={state} dispatch={dispatch} />
 
-        <div ref={noticeRef} className="scroll-mb-4">
+        <div ref={noticeRef} tabIndex={-1} className="scroll-mb-4">
           {state.notice ? <NoticeBar key={state.noticeSeq} text={state.notice} /> : null}
         </div>
       </div>

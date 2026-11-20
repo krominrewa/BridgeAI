@@ -9,8 +9,17 @@
 
   body {
     @apply bg-white font-sans text-ink antialiased;
-    font-size: 19px;
+    font-size: 1.1875rem;
     line-height: 1.75;
+  }
+
+  /* 用户自主字号三档：rem 布局全站等比放大，固定像素仅用于手机外框等装饰 */
+  html[data-font='large'] {
+    font-size: 20px;
+  }
+
+  html[data-font='xl'] {
+    font-size: 24px;
   }
 
   /* 大尺寸、高对比的键盘焦点提示，方便老年用户与键盘操作 */
@@ -105,4 +114,149 @@
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* 用户开关或系统偏好任一开启即减少动画 */
+html[data-motion='reduce'] {
+  scroll-behavior: auto;
+}
+
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* 高对比度：沿用蓝绿色系，加深文字、加粗边框与焦点环；选中/完成等状态仍带图标与文字 */
+html[data-contrast='high'] .text-ink-soft {
+  color: #16324f;
+}
+
+html[data-contrast='high'] .text-ink-muted {
+  color: #1d3d61;
+}
+
+html[data-contrast='high'] .text-brand-600,
+html[data-contrast='high'] .text-brand-700 {
+  color: #0b3d91;
+}
+
+html[data-contrast='high'] .text-brand-800,
+html[data-contrast='high'] .text-brand-900 {
+  color: #082a63;
+}
+
+html[data-contrast='high'] .text-lagoon-700,
+html[data-contrast='high'] .text-lagoon-800 {
+  color: #0b4f45;
+}
+
+html[data-contrast='high'] .text-lagoon-900 {
+  color: #07332c;
+}
+
+html[data-contrast='high'] .text-amber-900 {
+  color: #5b2c06;
+}
+
+html[data-contrast='high'] .text-brand-100 {
+  color: #ffffff;
+}
+
+html[data-contrast='high'] .border-brand-100,
+html[data-contrast='high'] .border-brand-200 {
+  border-color: #2f6db8;
+}
+
+html[data-contrast='high'] .border-lagoon-100,
+html[data-contrast='high'] .border-lagoon-200,
+html[data-contrast='high'] .border-lagoon-300 {
+  border-color: #0d6b5c;
+}
+
+html[data-contrast='high'] .border-amber-400 {
+  border-color: #8a4b06;
+}
+
+html[data-contrast='high'] .bg-paper {
+  background-color: #ffffff;
+}
+
+html[data-contrast='high'] .bg-brand-50 {
+  background-color: #e8f1fd;
+}
+
+html[data-contrast='high'] .bg-brand-100 {
+  background-color: #cfe3fa;
+}
+
+html[data-contrast='high'] .bg-lagoon-50 {
+  background-color: #e2f4f0;
+}
+
+html[data-contrast='high'] .bg-amber-50 {
+  background-color: #fdf3d7;
+}
+
+html[data-contrast='high'] .bg-brand-600,
+html[data-contrast='high'] .bg-brand-700 {
+  background-color: #0b3d91;
+}
+
+html[data-contrast='high'] .bg-lagoon-600 {
+  background-color: #0b4f45;
+}
+
+html[data-contrast='high'] .btn-primary {
+  background-color: #0b3d91;
+  border: 2px solid #06265c;
+}
+
+html[data-contrast='high'] .btn-secondary {
+  border-width: 3px;
+  border-color: #0b3d91;
+  color: #0b3d91;
+}
+
+html[data-contrast='high'] .btn-help {
+  border-width: 3px;
+  border-color: #0d6b5c;
+  color: #07332c;
+}
+
+html[data-contrast='high'] .btn-ghost {
+  color: #16324f;
+}
+
+html[data-contrast='high'] .badge {
+  border: 1.5px solid currentColor;
+}
+
+html[data-contrast='high'] :focus-visible {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 6px #06265c;
+}
+
+html[data-contrast='high'] .phone-scroll {
+  scrollbar-color: #2f6db8 #e8f1fd;
+}
+
+html[data-contrast='high'] .phone-scroll::-webkit-scrollbar-thumb {
+  background: #2f6db8;
+}
+
+html[data-contrast='high'] .phone-scroll::-webkit-scrollbar-track {
+  background: #e8f1fd;
+}
+
+/* 设置面板：原生 dialog 自带焦点圈定与 Esc 关闭；限高滚动避免小屏裁切 */
+.settings-dialog {
+  max-height: min(86dvh, 42rem);
+  overflow-y: auto;
+}
+
+.settings-dialog::backdrop {
+  background: rgb(15 35 56 / 0.55);
 }

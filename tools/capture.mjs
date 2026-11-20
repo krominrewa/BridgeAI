@@ -21,7 +21,7 @@ const STORAGE_KEY = 'bridgeai:appointment:v1'
 const HELPERS = `
 window.__qa = {
   wait: (ms) => new Promise((r) => setTimeout(r, ms)),
-  all: () => Array.from(document.querySelectorAll('button, a')),
+  all: () => Array.from(document.querySelectorAll('button, a')).filter((el) => !el.closest('dialog')),
   byText: (t) => window.__qa.all().find((b) => b.textContent.trim().startsWith(t)),
   click: async (t) => {
     const el = window.__qa.byText(t)
@@ -29,7 +29,8 @@ window.__qa = {
     el.click()
     await window.__qa.wait(140)
   },
-  choices: () => Array.from(document.querySelectorAll('button[aria-pressed]')),
+  choices: () =>
+    Array.from(document.querySelectorAll('button[aria-pressed]')).filter((el) => !el.closest('dialog')),
   pick: async (index) => {
     const list = window.__qa.choices().filter((b) => b.getAttribute('aria-disabled') !== 'true')
     if (!list[index]) throw new Error('没有第 ' + index + ' 个可选项')
@@ -86,6 +87,49 @@ window.__qa = {
     await window.__qa.toStep(4)
     await window.__qa.click('确认预约')
     await window.__qa.wait(260)
+  },
+  id: (i) => document.getElementById(i),
+  clickId: async (i) => {
+    const el = document.getElementById(i)
+    if (!el) throw new Error('找不到元素：' + i)
+    el.click()
+    await window.__qa.wait(180)
+  },
+  attrs: () => ({
+    font: document.documentElement.dataset.font,
+    contrast: document.documentElement.dataset.contrast,
+    motion: document.documentElement.dataset.motion,
+  }),
+  rootPx: () => getComputedStyle(document.documentElement).fontSize,
+  dialogOpen: () => {
+    const d = document.querySelector('dialog')
+    return Boolean(d && d.open)
+  },
+  noticeFocus: () => {
+    const alert = document.querySelector('[role="alert"]')
+    return Boolean(alert && document.activeElement && document.activeElement.contains(alert))
+  },
+  noticePlacement: () => {
+    const alert = document.querySelector('[role="alert"]')
+    if (!alert) return null
+    const r = alert.getBoundingClientRect()
+    const bar = document.getElementById('flow-action-bar').getBoundingClientRect()
+    return { aboveBar: r.bottom <= bar.top + 1, inViewport: r.top >= 0 && r.bottom <= window.innerHeight }
+  },
+  pickDisabled: async () => {
+    const el = window.__qa.choices().find((b) => b.getAttribute('aria-disabled') === 'true')
+    if (!el) throw new Error('没有约满的时间段可点')
+    el.click()
+    await window.__qa.wait(140)
+  },
+  pickDateWithFull: async () => {
+    const dates = window.__qa.choices().slice(0, 5)
+    for (const day of dates) {
+      day.click()
+      await window.__qa.wait(120)
+      if (window.__qa.choices().some((b) => b.getAttribute('aria-disabled') === 'true')) return true
+    }
+    return false
   },
 }
 `
@@ -364,6 +408,318 @@ const SCENARIOS = [
       const report = __qa.report();
       return { errorsDeduped: /错误操作\\s*1 次/.test(report), overflow: __qa.overflow() }`,
   },
+  {
+    name: 'settings-panel-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    script: `await __qa.clickId('settings-button-welcome');
+      return { dialogOpen: __qa.dialogOpen(), attrs: __qa.attrs(), rootPx: __qa.rootPx(),
+        labelledBy: document.querySelector('dialog').getAttribute('aria-labelledby') }`,
+  },
+  {
+    name: 'settings-font-large-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-large'); await __qa.clickId('settings-done');
+      await __qa.start();
+      const ps = document.querySelector('.phone-scroll');
+      return { rootPx: __qa.rootPx(), attrs: __qa.attrs(), overflow: __qa.overflow(),
+        phoneOverflow: ps.scrollWidth - ps.clientWidth, wide: __qa.wide() }`,
+  },
+  {
+    name: 'settings-font-xl-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-xl'); await __qa.clickId('settings-done');
+      await __qa.start();
+      const ps = document.querySelector('.phone-scroll');
+      const bar = document.getElementById('flow-action-bar').getBoundingClientRect();
+      const help = document.getElementById('help-button').getBoundingClientRect();
+      return { rootPx: __qa.rootPx(), attrs: __qa.attrs(), overflow: __qa.overflow(),
+        phoneOverflow: ps.scrollWidth - ps.clientWidth, wide: __qa.wide(),
+        outerOverflowY: document.documentElement.scrollHeight - window.innerHeight,
+        barVisible: bar.bottom <= window.innerHeight + 1 && bar.top >= 0,
+        helpW: Math.round(help.width), helpH: Math.round(help.height) }`,
+  },
+  {
+    name: 'settings-xl-welcome-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-xl'); await __qa.clickId('settings-done');
+      const start = document.getElementById('start-simulation').getBoundingClientRect();
+      const entry = document.getElementById('settings-button-welcome').getBoundingClientRect();
+      return { rootPx: __qa.rootPx(), startW: Math.round(start.width), startH: Math.round(start.height),
+        entryH: Math.round(entry.height), overflow: __qa.overflow(),
+        outerOverflowY: document.documentElement.scrollHeight - window.innerHeight }`,
+  },
+  {
+    name: 'settings-font-xl-home-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/',
+    fullPage: true,
+    script: `await __qa.clickId('settings-button-nav'); await __qa.clickId('font-xl'); await __qa.clickId('settings-done');
+      return { rootPx: __qa.rootPx(), overflow: __qa.overflow(), wide: __qa.wide() }`,
+  },
+  {
+    name: 'settings-contrast-high-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('contrast-high'); await __qa.clickId('settings-done');
+      await __qa.start();
+      return { attrs: __qa.attrs(),
+        softColor: getComputedStyle(document.querySelector('.text-ink-soft')).color,
+        primaryBg: getComputedStyle(document.querySelector('.btn-primary')).backgroundColor,
+        overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'settings-contrast-high-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/',
+    fullPage: true,
+    script: `await __qa.clickId('settings-button-nav'); await __qa.clickId('contrast-high'); await __qa.clickId('settings-done');
+      return { attrs: __qa.attrs(),
+        softColor: getComputedStyle(document.querySelector('.text-ink-soft')).color,
+        cardBorder: getComputedStyle(document.querySelector('.surface-card')).borderTopColor,
+        overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'settings-persist-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-xl');
+      await __qa.clickId('contrast-high'); await __qa.clickId('motion-switch'); await __qa.clickId('settings-done');
+      return { before: __qa.attrs(), rootPx: __qa.rootPx() }`,
+    reload: true,
+    check: `return { after: __qa.attrs(), rootPx: __qa.rootPx(), dialogOpen: __qa.dialogOpen() }`,
+  },
+  {
+    name: 'settings-reset-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-xl'); await __qa.clickId('contrast-high');
+      const changed = __qa.attrs();
+      await __qa.clickId('settings-reset');
+      const reset = __qa.attrs();
+      await __qa.clickId('settings-done');
+      return { changed, reset, rootPx: __qa.rootPx() }`,
+  },
+  {
+    name: 'settings-keyboard-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/',
+    script: `document.getElementById('settings-button-nav').focus();
+      return { focusedEntry: document.activeElement.id }`,
+    keys: ['Enter', 'Tab', 'Tab', 'Enter'],
+    check: `const el = document.activeElement;
+      return { dialogOpen: __qa.dialogOpen(), activeId: el.id, trapped: Boolean(el.closest('dialog')), font: __qa.attrs().font }`,
+  },
+  {
+    name: 'settings-esc-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/',
+    script: `document.getElementById('settings-button-nav').focus();
+      return { focusedEntry: document.activeElement.id }`,
+    keys: ['Enter', 'Escape'],
+    check: `return { dialogOpen: __qa.dialogOpen(), focusReturned: document.activeElement.id }`,
+  },
+  {
+    name: 'settings-motion-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('motion-switch');
+      const switchChecked = __qa.id('motion-switch').getAttribute('aria-checked');
+      await __qa.clickId('settings-done'); await __qa.start();
+      return { switchChecked, attrs: __qa.attrs(),
+        animDuration: getComputedStyle(document.querySelector('.animate-fade-up')).animationDuration }`,
+  },
+  {
+    name: 'settings-system-motion-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    reducedMotion: true,
+    route: '#/simulation',
+    script: `await __qa.start(); await __qa.clickId('settings-button-sim');
+      return { attrs: __qa.attrs(), switchChecked: __qa.id('motion-switch').getAttribute('aria-checked'),
+        noteMentionsSystem: __qa.id('motion-note').textContent.includes('系统') }`,
+  },
+  {
+    name: 'error-1-before-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start(); return { notice: __qa.notice(), heading: __qa.heading() }`,
+  },
+  {
+    name: 'error-2-notice-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start(); await __qa.click('下一步');
+      return { notice: __qa.notice(), focusOnNotice: __qa.noticeFocus(), placement: __qa.noticePlacement() }`,
+  },
+  {
+    name: 'error-3-corrected-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start(); await __qa.click('下一步'); await __qa.pick(0);
+      return { notice: __qa.notice(), selected: __qa.choices()[0].getAttribute('aria-pressed'), heading: __qa.heading() }`,
+  },
+  {
+    name: 'sim-error-dept-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(1); await __qa.click('下一步');
+      return { heading: __qa.heading(), notice: __qa.notice(), focusOnNotice: __qa.noticeFocus() }`,
+  },
+  {
+    name: 'sim-error-doctor-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(2); await __qa.click('下一步');
+      return { heading: __qa.heading(), notice: __qa.notice(), focusOnNotice: __qa.noticeFocus() }`,
+  },
+  {
+    name: 'sim-error-time-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(3); await __qa.click('下一步');
+      const dateNotice = __qa.notice();
+      await __qa.pick(0); await __qa.click('下一步');
+      return { dateNotice, slotNotice: __qa.notice(), focusOnNotice: __qa.noticeFocus() }`,
+  },
+  {
+    name: 'sim-error-fullslot-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(3);
+      const hasFull = await __qa.pickDateWithFull();
+      await __qa.pickDisabled();
+      return { hasFull, notice: __qa.notice(), focusOnNotice: __qa.noticeFocus(), placement: __qa.noticePlacement() }`,
+  },
+  {
+    name: 'sim-correct-continue-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start(); await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      const stepAfterCorrect = __qa.heading();
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.pickLast(); await __qa.click('下一步');
+      await __qa.click('确认预约'); await __qa.wait(260);
+      return { stepAfterCorrect, final: __qa.heading(), errorsOne: /错误操作\\s*1 次/.test(__qa.report()) }`,
+  },
+  {
+    name: 'sim-stats-multi-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步'); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      const hasFull = await __qa.pickDateWithFull();
+      await __qa.pickDisabled(); await __qa.pickDisabled();
+      await __qa.pickLast(); await __qa.click('下一步');
+      await __qa.click('确认预约'); await __qa.wait(260);
+      const report = __qa.report();
+      return { hasFull, errorsThree: /错误操作\\s*3 次/.test(report), hintsZero: /使用提示\\s*0 次/.test(report),
+        review1: report.includes('第 1 步'), review2: report.includes('第 2 步'), review4: report.includes('第 4 步'),
+        review3Absent: !report.includes('第 3 步') }`,
+  },
+  {
+    name: 'sim-xl-single-scroll-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-xl'); await __qa.clickId('settings-done');
+      await __qa.start();
+      const bar = document.getElementById('flow-action-bar').getBoundingClientRect();
+      const ps = document.querySelector('.phone-scroll');
+      return { outerOverflowY: document.documentElement.scrollHeight - window.innerHeight,
+        innerCanScroll: ps.scrollHeight > ps.clientHeight,
+        barVisible: bar.bottom <= window.innerHeight + 1 && bar.top >= 0,
+        phoneOverflow: ps.scrollWidth - ps.clientWidth, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'learning-xl-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/learning',
+    fullPage: true,
+    script: `await __qa.clickId('settings-button-nav'); await __qa.clickId('font-xl'); await __qa.clickId('settings-done');
+      return { rootPx: __qa.rootPx(), overflow: __qa.overflow(), wide: __qa.wide() }`,
+  },
+  {
+    name: 'sim-report-xl-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome'); await __qa.clickId('font-xl'); await __qa.clickId('settings-done');
+      await __qa.finish();
+      document.querySelector('[aria-labelledby="learning-report-title"]').scrollIntoView({ block: 'center' });
+      await __qa.wait(200);
+      const ps = document.querySelector('.phone-scroll');
+      return { report: __qa.report(), phoneOverflow: ps.scrollWidth - ps.clientWidth, wide: __qa.wide() }`,
+  },
 ]
 
 async function findChrome() {
@@ -481,9 +837,9 @@ async function main() {
     const cdp = new Cdp(ws)
     await cdp.send('Page.enable')
     await cdp.send('Runtime.enable')
-    // 每个场景都从干净的练习状态开始，避免上一场景的续练状态干扰
+    // 每个场景都从干净的练习状态与默认显示设置开始，避免上一场景的状态干扰
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
-      source: `try { if (!location.search.includes('reload=1')) sessionStorage.removeItem('${STORAGE_KEY}') } catch (e) {}`,
+      source: `try { if (!location.search.includes('reload=1')) { sessionStorage.removeItem('${STORAGE_KEY}'); localStorage.removeItem('bridgeai:display:v1') } } catch (e) {}`,
     })
 
     await mkdir(OUT_DIR, { recursive: true })
@@ -542,8 +898,11 @@ async function main() {
       }
       if (scenario.keys) {
         for (const key of scenario.keys) {
-          const code = key === 'Tab' ? 9 : 13
-          await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, windowsVirtualKeyCode: code })
+          const codes = { Tab: 9, Enter: 13, Escape: 27 }
+          const code = codes[key] ?? 13
+          // Enter 需要附带字符事件才会触发按钮默认激活行为
+          const extra = key === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}
+          await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, windowsVirtualKeyCode: code, ...extra })
           await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, windowsVirtualKeyCode: code })
           await sleep(120)
         }

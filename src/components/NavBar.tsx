@@ -1,5 +1,6 @@
-import { LogoMark } from './icons'
+import { LogoMark, SettingsIcon } from './icons'
 import { hrefFor, type Route } from '../router'
+import { useSettings } from '../settings/SettingsContext'
 
 const NAV_ITEMS: { route: Route; label: string }[] = [
   { route: 'home', label: '首页' },
@@ -13,6 +14,7 @@ type NavBarProps = {
 
 export default function NavBar({ current }: NavBarProps) {
   const activeKey: Route = current === 'simulation' ? 'learning' : current
+  const { setOpen } = useSettings()
 
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-brand-100 bg-white/90 backdrop-blur">
@@ -51,6 +53,21 @@ export default function NavBar({ current }: NavBarProps) {
               </li>
             )
           })}
+          <li>
+            <button
+              type="button"
+              id="settings-button-nav"
+              onClick={() => setOpen(true)}
+              aria-haspopup="dialog"
+              aria-label="显示与辅助设置"
+              className="flex min-h-[44px] items-center gap-1.5 rounded-full bg-brand-50 px-2 text-base font-semibold text-brand-700 transition-colors hover:bg-brand-100 sm:min-h-[52px] sm:px-4 sm:text-lg"
+            >
+              <span className="h-5 w-5 shrink-0 sm:h-6 sm:w-6">
+                <SettingsIcon />
+              </span>
+              <span className="hidden sm:inline">显示与辅助</span>
+            </button>
+          </li>
         </ul>
       </nav>
     </header>
