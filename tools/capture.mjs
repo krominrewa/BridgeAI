@@ -567,7 +567,10 @@ const SCENARIOS = [
     reducedMotion: true,
     route: '#/simulation',
     script: `await __qa.start(); await __qa.clickId('settings-button-sim');
-      return { attrs: __qa.attrs(), switchChecked: __qa.id('motion-switch').getAttribute('aria-checked'),
+      const initial = __qa.id('motion-switch').getAttribute('aria-checked');
+      if (initial === 'true') await __qa.clickId('motion-switch');
+      return { attrs: __qa.attrs(), switchInitial: initial,
+        switchChecked: __qa.id('motion-switch').getAttribute('aria-checked'),
         noteMentionsSystem: __qa.id('motion-note').textContent.includes('系统') }`,
   },
   {
@@ -838,8 +841,13 @@ async function main() {
     await cdp.send('Page.enable')
     await cdp.send('Runtime.enable')
     // 每个场景都从干净的练习状态与默认显示设置开始，避免上一场景的状态干扰
+    // 两个存储分开清理：任一存储抛异常不影响另一个的清理
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
-      source: `try { if (!location.search.includes('reload=1')) { sessionStorage.removeItem('${STORAGE_KEY}'); localStorage.removeItem('bridgeai:display:v1') } } catch (e) {}`,
+      source: `if (!location.search.includes('reload=1')) {
+        try { sessionStorage.removeItem('${STORAGE_KEY}') } catch (e) {}
+        try { localStorage.removeItem('bridgeai:display:v1') } catch (e) {}
+        window.__storageCleared = true
+      }`,
     })
 
     await mkdir(OUT_DIR, { recursive: true })
