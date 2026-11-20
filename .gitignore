@@ -4,3 +4,13 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+
+# 环境变量与密钥文件，禁止提交
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# 本地 QA 截图，可随时重新生成
+screenshots/
