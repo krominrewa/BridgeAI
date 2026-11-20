@@ -91,7 +91,8 @@ window.__qa = {
 `
 
 const SCENARIOS = [
-  { name: 'home-desktop', width: 1440, height: 900, route: '#/', fullPage: true },
+  { name: 'home-desktop', width: 1440, height: 900, route: '#/', fullPage: true,
+    script: `await __qa.wait(700); return { overflow: __qa.overflow() }` },
   { name: 'home-mobile', width: 390, height: 844, mobile: true, route: '#/', fullPage: true },
   { name: 'learning-desktop', width: 1440, height: 900, route: '#/learning', fullPage: true },
   { name: 'learning-mobile', width: 390, height: 844, mobile: true, route: '#/learning', fullPage: true },
@@ -102,7 +103,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `sessionStorage.removeItem('${STORAGE_KEY}'); return { overflow: __qa.overflow() }`,
   },
   {
@@ -111,7 +112,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(0); return { heading: __qa.heading(), overflow: __qa.overflow() }`,
   },
   {
@@ -120,7 +121,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.start(); await __qa.click('下一步'); return { notice: __qa.notice(), overflow: __qa.overflow() }`,
   },
   {
@@ -129,7 +130,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(1); await __qa.click('我需要帮助'); return { heading: __qa.heading(), help: __qa.help(), overflow: __qa.overflow() }`,
   },
   {
@@ -138,7 +139,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(3); await __qa.pick(0); return { heading: __qa.heading(), overflow: __qa.overflow() }`,
   },
   {
@@ -147,7 +148,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(4); return { heading: __qa.heading(), overflow: __qa.overflow() }`,
   },
   {
@@ -156,7 +157,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.finish(); return { heading: __qa.heading(), report: __qa.report(), overflow: __qa.overflow() }`,
   },
   {
@@ -164,7 +165,7 @@ const SCENARIOS = [
     width: 1440,
     height: 900,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     fullPage: true,
     script: `await __qa.finish(); return { heading: __qa.heading(), report: __qa.report(), overflow: __qa.overflow() }`,
   },
@@ -174,7 +175,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.finish();
       document.querySelector('[aria-labelledby="learning-report-title"]').scrollIntoView({ block: 'center' });
       await __qa.wait(200);
@@ -187,7 +188,7 @@ const SCENARIOS = [
     mobile: true,
     largeText: '24px',
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(3); await __qa.pick(0);
       document.querySelector('.phone-scroll').scrollTo(0, 0);
       const ps = document.querySelector('.phone-scroll');
@@ -210,7 +211,7 @@ const SCENARIOS = [
     mobile: true,
     reducedMotion: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.finish(); return { heading: __qa.heading(), overflow: __qa.overflow() }`,
   },
   {
@@ -219,7 +220,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.start(); return { focusedAfterStart: document.activeElement.id, overflow: __qa.overflow() }`,
     keys: ['Tab'],
     check: `const el = document.activeElement; const cs = getComputedStyle(el);
@@ -241,7 +242,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(4);
       await __qa.click('上一步');
       const backHeading = __qa.heading();
@@ -257,7 +258,7 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.finish(); await __qa.click('再练一次');
       return { heading: __qa.heading(), report: __qa.report(), overflow: __qa.overflow() }`,
   },
@@ -267,10 +268,101 @@ const SCENARIOS = [
     height: 844,
     mobile: true,
     route: '#/simulation',
-    clip: '.shadow-phone',
+    clip: '.phone-shell',
     script: `await __qa.toStep(2); return { headingBeforeReload: __qa.heading() }`,
     reload: true,
     check: `return { headingAfterReload: __qa.heading(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-320-mobile',
+    width: 320,
+    height: 568,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(0);
+      const bar = document.getElementById('flow-action-bar').getBoundingClientRect();
+      return { heading: __qa.heading(), overflow: __qa.overflow(),
+        outerOverflowY: document.documentElement.scrollHeight - window.innerHeight,
+        barVisible: bar.bottom <= window.innerHeight + 1 && bar.top >= 0 }`,
+  },
+  {
+    name: 'sim-414-mobile',
+    width: 414,
+    height: 896,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(3); await __qa.pick(0);
+      return { heading: __qa.heading(), overflow: __qa.overflow(),
+        outerOverflowY: document.documentElement.scrollHeight - window.innerHeight }`,
+  },
+  {
+    name: 'sim-single-scroll-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(0);
+      const bar = document.getElementById('flow-action-bar').getBoundingClientRect();
+      const ps = document.querySelector('.phone-scroll');
+      return { outerOverflowY: document.documentElement.scrollHeight - window.innerHeight,
+        innerCanScroll: ps.scrollHeight > ps.clientHeight,
+        barVisible: bar.bottom <= window.innerHeight + 1 && bar.top >= 0,
+        overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-desktop-1280',
+    width: 1280,
+    height: 800,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.finish(); return { heading: __qa.heading(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'home-320-mobile',
+    width: 320,
+    height: 568,
+    mobile: true,
+    route: '#/',
+    fullPage: true,
+    script: `return { overflow: __qa.overflow(), wide: __qa.wide() }`,
+  },
+  {
+    name: 'learning-320-mobile',
+    width: 320,
+    height: 568,
+    mobile: true,
+    route: '#/learning',
+    fullPage: true,
+    script: `return { overflow: __qa.overflow(), wide: __qa.wide() }`,
+  },
+  {
+    name: 'learning-details-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/learning',
+    fullPage: true,
+    script: `document.querySelector('details summary').click(); await __qa.wait(200);
+      return { detailsOpen: document.querySelector('details').open, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-stats-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步'); await __qa.click('下一步'); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.pickLast(); await __qa.click('下一步');
+      await __qa.click('确认预约'); await __qa.wait(260);
+      const report = __qa.report();
+      return { errorsDeduped: /错误操作\\s*1 次/.test(report), overflow: __qa.overflow() }`,
   },
 ]
 
@@ -417,7 +509,7 @@ async function main() {
       // 加查询参数强制整页加载：仅 hash 变化时 Chrome 不会触发 load 事件
       await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}${scenario.route}` })
       await loaded
-      await sleep(500)
+      await sleep(700)
       await cdp.evaluate(HELPERS)
       if (scenario.largeText) {
         await cdp.evaluate(`document.documentElement.style.fontSize = '${scenario.largeText}'`)

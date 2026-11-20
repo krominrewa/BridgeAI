@@ -33,20 +33,23 @@ export default function SimulationPage() {
   }, [state.started])
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 lg:py-16">
-      <BackLink to="learning" label="返回学习中心" />
+    <div className="flex min-h-0 flex-1 flex-col lg:mx-auto lg:block lg:max-w-6xl lg:flex-none lg:min-h-[auto] lg:px-5 lg:py-16">
+      <h1 className="sr-only lg:hidden">模拟预约挂号 · 模拟手机练习</h1>
 
-      <header className="mt-3">
-        <p className="text-lg font-semibold text-lagoon-700">模拟预约挂号 · 第一课</p>
-        <h1 className="mt-2 text-3xl font-bold text-ink sm:text-5xl">模拟手机界面</h1>
-        <p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-soft sm:text-xl">
-          下面是一部练习用的手机。一共 6 步：选医院、选科室、选医生、选时间、确认信息、看到预约成功。
-          所有医院和医生都是虚构的，随便点、放心练，不会扣费。
-        </p>
-      </header>
+      <div className="hidden lg:block">
+        <BackLink to="learning" label="返回学习中心" />
+        <header className="mt-3">
+          <p className="text-lg font-semibold text-lagoon-700">模拟预约挂号 · 第一课</p>
+          <h1 className="mt-2 text-3xl font-bold text-ink sm:text-5xl">模拟手机界面</h1>
+          <p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-soft sm:text-xl">
+            下面是一部练习用的手机。一共 6 步：选医院、选科室、选医生、选时间、确认信息、看到预约成功。
+            所有医院和医生都是虚构的，随便点、放心练，不会扣费。
+          </p>
+        </header>
+      </div>
 
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-        <div>
+      <div className="flex min-h-0 flex-1 flex-col lg:mt-8 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-10 lg:flex-none lg:min-h-[auto]">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-none lg:min-h-[auto]">
           <PhoneFrame
             title="模拟手机"
             onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
@@ -59,7 +62,7 @@ export default function SimulationPage() {
           </PhoneFrame>
         </div>
 
-        <aside className="space-y-6">
+        <aside className="hidden space-y-6 lg:block">
           <section className="surface-card">
             <div className="flex items-center gap-3">
               <span className="h-10 w-10 shrink-0">

@@ -46,7 +46,7 @@ export default function ChoiceButton({
       onClick={onClick}
       aria-pressed={selected}
       aria-disabled={unavailable ? true : undefined}
-      className={`flex min-h-[76px] w-full items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all duration-150 ${
+      className={`flex min-h-[76px] w-full items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition-all duration-150 ${
         unavailable ? 'cursor-not-allowed' : ''
       } ${shell}`}
     >

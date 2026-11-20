@@ -56,6 +56,15 @@
     @apply rounded-3xl border border-brand-100 bg-white p-6 shadow-card transition-all duration-200 sm:p-7;
   }
 
+  /* iPhone 刘海/_home 指示条安全区：桌面 env() 为 0，不影响布局 */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
   /* 手机屏幕内的滚动区域：保留可见滚动条，方便老年用户感知还有内容 */
   .phone-scroll {
     scrollbar-color: theme('colors.brand.300') theme('colors.brand.50');

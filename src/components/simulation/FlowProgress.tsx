@@ -9,14 +9,14 @@ export default function FlowProgress({ step }: FlowProgressProps) {
   const finished = step === SUCCESS_STEP
 
   return (
-    <div className="rounded-2xl border border-brand-100 bg-white px-[12px] py-3">
+    <div className="rounded-2xl border border-brand-100 bg-white px-[12px] py-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1" aria-live="polite">
         <p className="text-lg font-bold text-brand-800">
           {finished ? '全部完成' : `第 ${step + 1} 步 / 共 ${TOTAL_STEPS} 步`}
         </p>
         <p className="text-base font-semibold text-ink-soft">{STEP_TITLES[step]}</p>
       </div>
-      <ol className="mt-2.5 flex items-center gap-[4px]" aria-hidden="true">
+      <ol className="mt-2 flex items-center gap-[4px]" aria-hidden="true">
         {STEP_TITLES.map((title, index) => {
           const done = index < step || finished
           const current = index === step && !finished

@@ -16,12 +16,16 @@ function clockText(): string {
 
 export default function PhoneFrame({ title, children, onExit, preview = false }: PhoneFrameProps) {
   return (
-    <div className="mx-auto w-full max-w-[380px]">
-      <div className="rounded-[2.5rem] bg-ink p-[10px] shadow-phone">
-        <div className="flex h-[640px] max-h-[74vh] flex-col overflow-hidden rounded-[2rem] bg-paper">
-          <div className="flex items-center justify-between bg-white px-5 pb-1 pt-2.5 text-[13px] font-semibold text-ink">
+    <div className="phone-shell mx-auto flex w-full min-h-0 flex-1 flex-col lg:max-w-[380px] lg:flex-none lg:min-h-[auto]">
+      {/* 桌面：精致手机外框；移动：去外框的全屏应用布局（首页预览保留轻卡片边） */}
+      <div
+        className={`flex min-h-0 flex-1 flex-col lg:block lg:rounded-[2.5rem] lg:bg-ink lg:p-[10px] lg:shadow-phone ${
+          preview ? 'overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-card lg:border-0' : ''
+        }`}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-paper lg:h-[640px] lg:max-h-[74vh] lg:flex-none lg:rounded-[2rem]">
+          <div className="hidden items-center justify-between bg-white px-5 pb-1 pt-2.5 text-[13px] font-semibold text-ink lg:flex">
             <span aria-hidden="true">{clockText()}</span>
-            <span className="sr-only">{title}</span>
             <span className="flex items-center gap-1.5" aria-hidden="true">
               <span className="h-2 w-1 rounded-sm bg-ink/30" />
               <span className="h-2.5 w-1 rounded-sm bg-ink/50" />
@@ -52,10 +56,11 @@ export default function PhoneFrame({ title, children, onExit, preview = false }:
             <p className="flex-1 text-center text-[17px] font-bold text-ink">模拟挂号</p>
             <span className="badge bg-lagoon-50 px-[10px] text-[15px] text-lagoon-800">{preview ? '界面预览' : '练习模式'}</span>
           </div>
+          <span className="sr-only">{title}</span>
 
-          <div className="phone-scroll flex-1 overflow-y-auto">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
-          <div className="flex justify-center bg-white pb-2 pt-1.5" aria-hidden="true">
+          <div className="hidden justify-center bg-white pb-2 pt-1.5 lg:flex" aria-hidden="true">
             <span className="h-1 w-24 rounded-full bg-ink/20" />
           </div>
         </div>

@@ -68,7 +68,8 @@ export default function LearningReport({ state }: LearningReportProps) {
       )}
 
       <p className="mt-3 text-base leading-relaxed text-ink-soft">
-        “错误操作”指漏选内容就点了“下一步”，或点了已约满的时间。练习中出错很正常，再练一次会更熟练。
+        “错误操作”指漏选内容就点“下一步”，或点了已约满的时间；同一提醒连续重复点击只记 1 次。
+        练习中出错很正常，再练一次会更熟练。
       </p>
     </section>
   )

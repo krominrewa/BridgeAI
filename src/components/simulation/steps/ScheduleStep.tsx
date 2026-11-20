@@ -60,7 +60,7 @@ export default function ScheduleStep({ state, dispatch }: StepProps) {
     <>
       <StepHeading
         title="选择日期和时间"
-        hint="先点一个日期，再点一个时间段。写着“已约满”的时间不能选，换一个就好。"
+        hint="先点日期，再点时间段。“已约满”的换一个就好。"
       />
 
       <GroupTitle index={1} text="哪天去看病？" />

@@ -10,7 +10,7 @@ import HospitalStep from './steps/HospitalStep'
 import ScheduleStep from './steps/ScheduleStep'
 import SuccessStep from './steps/SuccessStep'
 import type { StepProps } from './stepProps'
-import { QuestionIcon } from '../icons'
+import { BridgeBuddy } from '../icons'
 import { SUCCESS_STEP } from '../../simulation/appointmentState'
 
 const STEP_COMPONENTS = [HospitalStep, DepartmentStep, DoctorStep, ScheduleStep, ConfirmStep, SuccessStep]
@@ -28,51 +28,53 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
     document.getElementById('step-heading')?.focus()
   }, [state.step])
 
-  // 错误提示在列表下方，出现时滚进可视区域，保证用户立刻看见反馈
+  // 错误提示出现时滚进可视区域，保证用户立刻看见反馈
   useEffect(() => {
     if (state.noticeSeq > 0) noticeRef.current?.scrollIntoView({ block: 'nearest' })
   }, [state.noticeSeq])
 
   return (
-    <div className="flex min-h-full flex-col px-4 pt-4">
-      <FlowProgress step={state.step} />
+    <>
+      <div className="phone-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-3">
+        <FlowProgress step={state.step} />
 
-      {finished ? null : (
-        <>
-          <button
-            type="button"
-            id="help-button"
-            onClick={() => dispatch({ type: 'help' })}
-            aria-expanded={Boolean(state.help)}
-            aria-controls="help-panel"
-            className="btn btn-help mt-3 w-full"
-          >
-            <span className="h-6 w-6">
-              <QuestionIcon />
-            </span>
-            我需要帮助
-          </button>
-          {state.help ? (
-            <HelpPanel
-              key={state.stats.hints}
-              text={state.help}
-              onDismiss={() => {
-                dispatch({ type: 'dismissHelp' })
-                document.getElementById('help-button')?.focus()
-              }}
-            />
-          ) : null}
-        </>
-      )}
+        {finished ? null : (
+          <>
+            <button
+              type="button"
+              id="help-button"
+              onClick={() => dispatch({ type: 'help' })}
+              aria-expanded={Boolean(state.help)}
+              aria-controls="help-panel"
+              className="btn btn-help mt-2 w-full"
+            >
+              <span className="h-6 w-6">
+                <BridgeBuddy />
+              </span>
+              我需要帮助
+            </button>
+            {state.help ? (
+              <HelpPanel
+                key={state.stats.hints}
+                text={state.help}
+                onDismiss={() => {
+                  dispatch({ type: 'dismissHelp' })
+                  document.getElementById('help-button')?.focus()
+                }}
+              />
+            ) : null}
+          </>
+        )}
 
-      <StepComponent state={state} dispatch={dispatch} />
+        <StepComponent state={state} dispatch={dispatch} />
 
-      <div ref={noticeRef} className="scroll-mb-24">
-        {state.notice ? <NoticeBar key={state.noticeSeq} text={state.notice} /> : null}
+        <div ref={noticeRef} className="scroll-mb-4">
+          {state.notice ? <NoticeBar key={state.noticeSeq} text={state.notice} /> : null}
+        </div>
       </div>
 
-      {/* 主操作固定在屏幕底部：长列表里也始终看得见、点得到 */}
-      <div className="sticky bottom-0 -mx-4 mt-auto border-t border-brand-100 bg-white/95 px-4 py-3 backdrop-blur">
+      {/* 操作栏独立于滚动区：任何屏幕尺寸下都不覆盖内容，且始终可见 */}
+      <div id="flow-action-bar" className="safe-bottom border-t border-brand-100 bg-white px-4 pt-3">
         {finished ? (
           <div className="flex flex-wrap gap-3">
             <button
@@ -98,6 +100,6 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
           />
         )}
       </div>
-    </div>
+    </>
   )
 }

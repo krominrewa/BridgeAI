@@ -171,7 +171,15 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
     case 'next': {
       const notice = missingNotice(state)
       if (notice) {
-        return { ...state, notice, noticeSeq: state.noticeSeq + 1, help: null, stats: bump(state.stats, state.step, 'errors') }
+        // 同一提醒连续重复点击只记 1 次错误；有过有效操作后再犯才重新计数
+        const repeated = state.notice === notice
+        return {
+          ...state,
+          notice,
+          noticeSeq: state.noticeSeq + 1,
+          help: null,
+          stats: repeated ? state.stats : bump(state.stats, state.step, 'errors'),
+        }
       }
       if (state.step === CONFIRM_STEP) {
         return {
@@ -197,7 +205,14 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
       const notice = state.date
         ? '这个时间段已经约满了，请换一个还有号的时间。'
         : '请先在上面选一个看病的日期，再点时间段。'
-      return { ...state, notice, noticeSeq: state.noticeSeq + 1, help: null, stats: bump(state.stats, state.step, 'errors') }
+      const repeated = state.notice === notice
+      return {
+        ...state,
+        notice,
+        noticeSeq: state.noticeSeq + 1,
+        help: null,
+        stats: repeated ? state.stats : bump(state.stats, state.step, 'errors'),
+      }
     }
   }
 }
