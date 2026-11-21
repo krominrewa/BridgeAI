@@ -1184,6 +1184,7 @@ const SCENARIOS = [
     clip: '.phone-shell',
     script: `await __qa.advance(1);
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help.includes('户号')) throw new Error('缴费课帮助未解释户号：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
@@ -1289,6 +1290,7 @@ const SCENARIOS = [
     clip: '.phone-shell',
     script: `await __qa.advance(2);
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help.includes('马路中间')) throw new Error('上车点帮助缺少安全说明：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
@@ -1414,6 +1416,7 @@ const SCENARIOS = [
     clip: '.phone-shell',
     script: `await __qa.advance(1);
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help.includes('药店买药')) throw new Error('场景帮助未列举场景：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
@@ -1770,9 +1773,112 @@ const SCENARIOS = [
     script: `await __qa.start();
       await __qa.click('下一步');
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help || !help.includes('要钱、要码、要保密')) throw new Error('防骗帮助未点出三类信号：' + (help || '').slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
+
+  // ——— 第十阶段：三级提示、主动引导、学习总结与练习历史 ———
+  {
+    name: 'sim-help-tiers-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(1);
+      await __qa.click('我需要帮助');
+      const tierText = () => ((document.getElementById('help-tier') || {}).textContent || '').trim();
+      const first = { tier: tierText(), text: document.getElementById('help-text').textContent };
+      if (!first.tier.includes('提示 1 / 3')) throw new Error('首档提示标识不对：' + first.tier);
+      if (!first.text.includes('选择科室')) throw new Error('第一档未给方向：' + first.text.slice(0, 60));
+      await __qa.clickId('help-more');
+      const second = { tier: tierText(), text: document.getElementById('help-text').textContent };
+      if (!second.tier.includes('提示 2 / 3')) throw new Error('第二档提示标识不对：' + second.tier);
+      if (second.text.length <= first.text.length) throw new Error('第二档没有更具体');
+      await __qa.clickId('help-more');
+      const third = { tier: tierText(), text: document.getElementById('help-text').textContent };
+      if (!third.tier.includes('提示 3 / 3')) throw new Error('第三档提示标识不对：' + third.tier);
+      if (document.getElementById('help-more')) throw new Error('第三档仍显示“再具体一点”');
+      if (!document.getElementById('help-tier-max')) throw new Error('第三档缺少“已经最具体”说明');
+      await __qa.click('我明白了，继续操作');
+      await __qa.click('我需要帮助');
+      const reset = tierText();
+      if (!reset.includes('提示 1 / 3')) throw new Error('重新打开未回到第一档：' + reset);
+      return { first: first.tier, second: second.tier, third: third.tier, reset, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-nudge-report-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(3);
+      const found = await __qa.pickDateWithFull();
+      if (!found) throw new Error('没有约满时间段可构造连续错误');
+      await __qa.pickDisabled();
+      await __qa.click('下一步');
+      await __qa.wait(260);
+      const nudge = document.getElementById('buddy-nudge');
+      if (!nudge) throw new Error('连续出错后主动提醒未出现');
+      const nudgeText = nudge.textContent.replace(/\\s+/g, ' ').trim();
+      await __qa.clickId('nudge-help');
+      await __qa.clickId('help-more');
+      await __qa.clickId('help-more');
+      const tier = ((document.getElementById('help-tier') || {}).textContent || '').trim();
+      if (!tier.includes('提示 3 / 3')) throw new Error('主动提示展开后未能升到第三档：' + tier);
+      await __qa.click('我明白了，继续操作');
+      await __qa.pickLast();
+      await __qa.click('下一步');
+      await __qa.click('确认预约');
+      await __qa.wait(340);
+      const report = __qa.report();
+      for (const required of ['主动提醒1 次', '用到手把手提示的步骤', '第 4 步 · 选择时间', '本课记住这几条', '建议把这节课再练一次']) {
+        if (!report.includes(required)) throw new Error('学习小结缺少：' + required + ' :: ' + report);
+      }
+      return { nudgeText, tier, report: report.slice(0, 180), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-nudge-idle-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.wait(21500);
+      const nudge = document.getElementById('buddy-nudge');
+      if (!nudge) throw new Error('停 20 秒后主动提醒未出现');
+      const text = nudge.textContent.replace(/\\s+/g, ' ').trim();
+      if (!text.includes('别着急')) throw new Error('主动提醒文案不对：' + text);
+      await __qa.clickId('nudge-dismiss');
+      await __qa.wait(180);
+      if (document.getElementById('buddy-nudge')) throw new Error('关闭后主动提醒仍在');
+      return { text, dismissed: true, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-report-history-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.finish();
+      const report = __qa.report();
+      for (const required of ['桥桥说：一次就做对了，真稳！', '错误操作0 次', '使用提示0 次', '主动提醒0 次', '本课记住这几条', '接着练下一课']) {
+        if (!report.includes(required)) throw new Error('学习小结缺少：' + required);
+      }
+      const next = document.querySelector('#report-next a');
+      if (!next || !next.getAttribute('href').includes('#/simulation/payment')) throw new Error('下一课推荐链接不对');
+      await __qa.click('退出');
+      await __qa.wait(260);
+      const last = document.getElementById('last-practice');
+      if (!last || !last.textContent.includes('上次练习')) throw new Error('欢迎页未显示上次练习');
+      const history = JSON.parse(localStorage.getItem('bridgeai:practice-history:v1') || '{}');
+      if (!history.appointment || history.appointment.errors !== 0) throw new Error('练习历史未保存');
+      return { last: last.textContent.replace(/\\s+/g, ' ').trim(), next: next.getAttribute('href'), overflow: __qa.overflow() }`,
   },
 ]
 
@@ -1906,6 +2012,7 @@ async function main() {
       source: `if (!location.search.includes('reload=1')) {
         ${[...STORAGE_KEYS, 'bridgeai:voice-intro:v1'].map((key) => `try { sessionStorage.removeItem('${key}') } catch (e) {}`).join('\n        ')}
         try { localStorage.removeItem('bridgeai:display:v1') } catch (e) {}
+        try { localStorage.removeItem('bridgeai:practice-history:v1') } catch (e) {}
         window.__storageCleared = true
       }
       if (location.search.includes('speechstub=1')) {

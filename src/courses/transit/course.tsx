@@ -70,6 +70,8 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   steps: [ModeStep, DestinationStep, PickupStep, VehicleStep, ConfirmStep, SuccessStep],
   helpPayload,
   voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['上车点选人行道或小区门口，不选马路中间', '打车先核对车牌，公交先看首末班', '确认前核对目的地和费用'],
+  nextCourse: 'insurance',
   tasks: (state) => {
     switch (state.step) {
       case 0:
@@ -139,7 +141,14 @@ export default function TransitCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="transit"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }

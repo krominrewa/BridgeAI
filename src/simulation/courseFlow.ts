@@ -1,4 +1,5 @@
 import { useEffect, useReducer, type ComponentType, type Dispatch } from 'react'
+import type { CourseId } from '../router'
 import type { FlowActionBase, FlowBase } from './flowKit'
 import { saveStoredFlow } from './flowKit'
 import type { HelpRequest } from './helpRequest'
@@ -39,6 +40,10 @@ export type CourseEngine<S extends FlowBase, X extends { type: string }> = {
   voiceLine?: (state: S) => string
   /** 逐步操作模式的小动作；不提供时本步不拆分。 */
   tasks?: (state: S) => MicroTask<S>[]
+  /** 本课最该记住的几条要点，写进学习小结。 */
+  takeaways?: string[]
+  /** 学得顺利时推荐的下一课；不提供表示已经是最后一课。 */
+  nextCourse?: CourseId
 }
 
 export function useCourseFlow<S extends FlowBase, X extends { type: string }>(

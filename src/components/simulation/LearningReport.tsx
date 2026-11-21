@@ -1,4 +1,5 @@
 import type { LearningReportData } from '../../simulation/learningReport'
+import { hrefFor } from '../../router'
 import { CheckIcon } from '../icons'
 
 type LearningReportProps = {
@@ -25,7 +26,14 @@ export default function LearningReport({ report, note }: LearningReportProps) {
         </span>
       </div>
 
-      <p className="mt-2 flex items-start gap-2 text-lg font-semibold leading-relaxed text-ink">
+      <p
+        id="report-encouragement"
+        className="mt-3 rounded-xl bg-lagoon-50 px-4 py-3 text-lg font-bold leading-relaxed text-lagoon-900"
+      >
+        桥桥说：{report.encouragement}
+      </p>
+
+      <p className="mt-3 flex items-start gap-2 text-lg font-semibold leading-relaxed text-ink">
         <span className="mt-1 h-5 w-5 shrink-0 text-lagoon-700">
           <CheckIcon />
         </span>
@@ -36,16 +44,34 @@ export default function LearningReport({ report, note }: LearningReportProps) {
         本次用时 {report.durationText} · {report.finishedAtText} 完成
       </p>
 
-      <dl className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-paper px-3 py-3 text-center">
+      <dl className="mt-3 grid grid-cols-3 gap-2">
+        <div className="rounded-xl bg-paper px-2 py-3 text-center">
           <dt className="text-base text-ink-soft">错误操作</dt>
-          <dd className="mt-0.5 text-2xl font-bold text-ink">{report.errors} 次</dd>
+          <dd className="mt-0.5 text-xl font-bold text-ink">{report.errors} 次</dd>
         </div>
-        <div className="rounded-xl bg-paper px-3 py-3 text-center">
+        <div className="rounded-xl bg-paper px-2 py-3 text-center">
           <dt className="text-base text-ink-soft">使用提示</dt>
-          <dd className="mt-0.5 text-2xl font-bold text-ink">{report.hints} 次</dd>
+          <dd className="mt-0.5 text-xl font-bold text-ink">{report.hints} 次</dd>
+        </div>
+        <div className="rounded-xl bg-paper px-2 py-3 text-center">
+          <dt className="text-base text-ink-soft">主动提醒</dt>
+          <dd className="mt-0.5 text-xl font-bold text-ink">{report.autoHints} 次</dd>
         </div>
       </dl>
+
+      {report.deepHintSteps.length > 0 ? (
+        <div id="report-deep-hints" className="mt-4">
+          <h4 className="text-lg font-bold text-ink">用到手把手提示的步骤</h4>
+          <ul className="mt-2 space-y-1.5">
+            {report.deepHintSteps.map((item) => (
+              <li key={item} className="rounded-xl border border-brand-100 bg-paper px-3 py-2 text-base leading-relaxed text-ink">
+                {item}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-base leading-relaxed text-ink-soft">这几步下次可以先自己试，实在不行再点“说得再具体一点”。</p>
+        </div>
+      ) : null}
 
       <h4 className="mt-4 text-lg font-bold text-ink">需要复习的步骤</h4>
       {report.review.length > 0 ? (
@@ -65,6 +91,31 @@ export default function LearningReport({ report, note }: LearningReportProps) {
           这次没有需要特别复习的步骤，做得很好！
         </p>
       )}
+
+      {report.takeaways.length > 0 ? (
+        <div id="report-takeaways" className="mt-4">
+          <h4 className="text-lg font-bold text-ink">本课记住这几条</h4>
+          <ul className="mt-2 space-y-2">
+            {report.takeaways.map((item) => (
+              <li key={item} className="flex items-start gap-2 rounded-xl border border-lagoon-200 bg-lagoon-50 px-3 py-2.5 text-base leading-relaxed text-ink">
+                <span className="mt-0.5 h-5 w-5 shrink-0 text-lagoon-700">
+                  <CheckIcon />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div id="report-next" className="mt-4 rounded-xl border border-brand-100 bg-paper px-3 py-3">
+        <p className="text-base font-semibold leading-relaxed text-ink">接下来：{report.nextSuggestion.text}</p>
+        {report.nextSuggestion.courseId ? (
+          <a href={hrefFor('simulation', report.nextSuggestion.courseId)} className="btn btn-primary mt-2.5 w-full text-lg">
+            接着练下一课
+          </a>
+        ) : null}
+      </div>
 
       <p className="mt-3 text-base leading-relaxed text-ink-soft">{note}</p>
     </section>

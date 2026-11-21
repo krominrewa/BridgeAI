@@ -92,6 +92,13 @@ function engineFor(scenario: FraudScenario): CourseEngine<FlowState, ExtraAction
     ),
     helpPayload: flow.helpPayload,
     voiceLine: (state) => lines[state.step] ?? lines[0],
+    takeaways: scenario.takeaways,
+    nextCourse:
+      scenario.courseId === 'fraud-refund'
+        ? 'fraud-official'
+        : scenario.courseId === 'fraud-official'
+          ? 'fraud-subsidy'
+          : undefined,
     tasks: (state) => {
       switch (state.step) {
         case 1:
@@ -150,6 +157,7 @@ function FraudCourse({ scenario }: { scenario: FraudScenario }) {
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
       <CourseShell
+        courseId={scenario.courseId}
         engine={engineFor(scenario)}
         welcome={welcomeFor(scenario)}
         reportNote={reportNote}

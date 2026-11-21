@@ -70,6 +70,8 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   steps: [HospitalStep, DepartmentStep, DoctorStep, ScheduleStep, ConfirmStep, SuccessStep],
   helpPayload,
   voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['看病前先想好去哪家医院、挂哪个科室', '核对医生和看病时间后再确认', '预约成功要记住时间和预约编号'],
+  nextCourse: 'payment',
   tasks: (state) => {
     switch (state.step) {
       case 0:
@@ -138,7 +140,14 @@ export default function AppointmentCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="appointment"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }

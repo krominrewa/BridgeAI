@@ -233,12 +233,12 @@ type LearningReportData = {
 
 ## 7. 数据模型变化汇总
 
-- `FlowBase`：新增 `helpTier`、`nudge`、`nudgeSeq`、`nudgedStep`。
+- `FlowBase`：新增 `helpTier`、`nudge`、`nudgeSeq`、`nudgedSteps`（记录本步是否已主动提醒过）。
 - `FlowStats`：新增 `autoHints`；`byStep[]` 新增 `maxTier`（读取旧存档时补 0）。
 - `FlowActionBase`：`help` 支持 `tier`；新增 `nudge`（`kind: 'idle' | 'errors'`）与 `dismissNudge`。
 - `FlowRules`：`helpText` → `hintText(state, tier)`；新增可选 `nudgeText(state)`。
 - `CourseEngine`：新增 `voiceLine`、`tasks`、`takeaways`、`nextCourse`。
-- `HelpRequest`：新增 `tier: 1 | 2 | 3`。
+- `HelpRequest`：新增可选 `tier: 1 | 2 | 3`。
 - `CourseShell`：新增 `courseId` 属性，供练习历史与下一课建议使用。
 
 ## 8. 文件清单
@@ -290,4 +290,11 @@ type LearningReportData = {
 - 代理系统提示词已加入防骗三课与安全底线（不给链接、不劝转账、不索要验证码）；Qoder API 仍通过 `TEACHING_API_URL` / `TEACHING_MODEL` / `TEACHING_API_KEY` 接入。
 - `tools/capture.mjs` 现有 105 个场景，其中防骗 8 个；`npm run build` 与全量场景验收均通过。
 
-第 10 阶段（三级提示、主动引导、学习总结与练习历史）待实施；`practiceHistory` 目前尚未创建。
+第 10 阶段已按下列实际实现落地：
+
+- **三级提示**：`flowKit.ts` 增加 `HelpTier = 1 | 2 | 3`、`directionText` 与分层 `tierText`。第 1 档给方向，第 2 档沿用各课原有 `helpText`，第 3 档在具体做法后追加手把手兜底；防骗课在 `src/courses/fraud/state.ts` 里单独提供三档文案。`help` 动作可带 `tier`，每次升档计一次提示，`byStep[].maxTier` 记录最高档；重开帮助回到第 1 档。
+- **主动引导**：`CourseShell.tsx` 监听 20 秒无操作与同一步 2 次错误，`nudge` 每步最多触发一次，`dismissNudge` 关闭；收到点击或按键会重置空闲计时。`BuddyNudge.tsx` 提供“看看提示”和“我自己再试试”，不抢焦点。设置面板的“桥桥主动提示”关闭后不再触发；语音开启时朗读提醒文字。
+- **学习总结**：`learningReport.ts` 增加 `autoHints`、`deepHintSteps`、`encouragement`、`takeaways`、`nextSuggestion`。评语按错误与提示量三档生成；学得稳时给出下一课入口，否则建议重练并点名需复习步骤。七课 `course.tsx` 各自提供 `takeaways` 与 `nextCourse`。
+- **练习历史**：`practiceHistory.ts` 以 `bridgeai:practice-history:v1` 保存每课最近一次完成时间、用时、错误、提示、主动提醒与手把手提示次数；读取时逐项校验，损坏数据自动忽略。课程欢迎页显示“上次练习：11 月 21 日 · 错误 0 次 · 用时 2 秒”。
+- **代理**：`server/teaching-proxy.mjs` 的系统提示词说明三档提示的区别，`sanitizeContext` 仅在 `tier` 为 1/2/3 时转发。
+- **验收**：`tools/capture.mjs` 增加 `sim-help-tiers-mobile`、`sim-nudge-report-mobile`、`sim-nudge-idle-mobile`、`sim-report-history-mobile` 四个场景，并把四个原有帮助场景改为先升到第 2 档再断言。当前共 109 个场景，`npm run build` 与全量无头浏览器验收均通过（109 张，失败 0 张）。

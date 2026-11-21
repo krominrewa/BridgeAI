@@ -70,6 +70,8 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   steps: [TypeStep, AccountStep, BillStep, AmountStep, ConfirmStep, SuccessStep],
   helpPayload,
   voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['户号不是身份证号，先核对地址和户主', '账单看清用量、金额和最后期限', '全额缴纳和预存要分清'],
+  nextCourse: 'transit',
   tasks: (state) => {
     switch (state.step) {
       case 0:
@@ -138,7 +140,14 @@ export default function PaymentCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="payment"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }

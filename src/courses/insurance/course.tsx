@@ -71,6 +71,8 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   steps: [IntroStep, SceneStep, UserStep, VerifyStep, ConfirmStep, SuccessStep],
   helpPayload,
   voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['电子凭证和实体医保卡作用一样', '验证码、密码、二维码谁要都不能给', '替家人出示前先确认已绑定亲情账户'],
+  nextCourse: 'fraud-refund',
   tasks: (state) => {
     switch (state.step) {
       case 0:
@@ -133,7 +135,14 @@ export default function InsuranceCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="insurance"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }
