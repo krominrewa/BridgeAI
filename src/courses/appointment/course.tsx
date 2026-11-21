@@ -53,6 +53,15 @@ const welcome: WelcomeContent = {
 const reportNote =
   '“错误操作”指漏选内容就点“下一步”，或点了已约满的时间；同一提醒连续重复点击只记 1 次。练习中出错很正常，再练一次会更熟练。'
 
+const VOICE_LINES = [
+  '第 1 步，选择医院。点一下您想去的医院，再点下一步。',
+  '第 2 步，选择科室。想想哪里不舒服，点对应的科室。',
+  '第 3 步，选择医生。点一位医生，再点下一步。',
+  '第 4 步，选择时间。先点看病的日期，再点一个还有号的时间段。',
+  '第 5 步，确认信息。从上到下核对医院、科室、医生和时间。',
+  '预约完成。下面是本次学习小结。',
+]
+
 const engine: CourseEngine<FlowState, ExtraAction> = {
   titles: STEP_TITLES,
   confirmStep: CONFIRM_STEP,
@@ -60,6 +69,66 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   confirmLabel: '确认预约',
   steps: [HospitalStep, DepartmentStep, DoctorStep, ScheduleStep, ConfirmStep, SuccessStep],
   helpPayload,
+  voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['看病前先想好去哪家医院、挂哪个科室', '核对医生和看病时间后再确认', '预约成功要记住时间和预约编号'],
+  nextCourse: 'payment',
+  tasks: (state) => {
+    switch (state.step) {
+      case 0:
+        return [
+          {
+            id: 'hospital',
+            text: '点一下您想去的医院',
+            done: (s) => Boolean(s.hospitalId),
+            waiting: '还没有选医院。先点一下医院卡片，再点“我做好了”。',
+          },
+        ]
+      case 1:
+        return [
+          {
+            id: 'department',
+            text: '想想哪里不舒服，点对应的科室',
+            done: (s) => Boolean(s.departmentId),
+            waiting: '还没有选科室。先点一下最接近的科室。',
+          },
+        ]
+      case 2:
+        return [
+          {
+            id: 'doctor',
+            text: '点一位医生',
+            done: (s) => Boolean(s.doctorId),
+            waiting: '还没有选医生。点一位医生，再点“我做好了”。',
+          },
+        ]
+      case 3:
+        return [
+          {
+            id: 'date',
+            text: '先点一个看病的日期，例如“明天”',
+            done: (s) => Boolean(s.date),
+            waiting: '日期还没选。先在上面点一个日期。',
+          },
+          {
+            id: 'slot',
+            text: '再点一个写着“还剩几个号”的时间段',
+            done: (s) => Boolean(s.slotId),
+            waiting: '时间段还没选。点一个还有号的时间。',
+          },
+        ]
+      case 4:
+        return [
+          {
+            id: 'review',
+            text: '从上到下核对医院、科室、医生和时间',
+            done: () => false,
+            waiting: '核对好后，点最下面的“确认预约”。这是练习，不会真的挂号。',
+          },
+        ]
+      default:
+        return []
+    }
+  },
 }
 
 export default function AppointmentCourse() {
@@ -71,7 +140,14 @@ export default function AppointmentCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="appointment"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }

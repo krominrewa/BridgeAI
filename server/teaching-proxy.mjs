@@ -5,8 +5,8 @@
  * 启动示例：
  *   TEACHING_API_KEY=sk-xxx node server/teaching-proxy.mjs
  * 可选环境变量：
- *   TEACHING_API_URL      OpenAI 兼容接口地址（默认 DashScope 兼容模式）
- *   TEACHING_MODEL        模型名（默认 qwen-plus）
+ *   TEACHING_API_URL      OpenAI 兼容接口地址（默认 DashScope 兼容模式；接 Qoder API 时填 Qoder 提供的兼容地址）
+ *   TEACHING_MODEL        模型名（默认 qwen-plus；接 Qoder API 时填对应模型名）
  *   PORT                  监听端口（默认 8787）
  *   TEACHING_ALLOW_ORIGIN 允许的前端来源，逗号分隔（默认本地开发端口）
  * 前端构建时配置：VITE_TEACHING_API_URL=http://127.0.0.1:8787/api/teaching
@@ -23,10 +23,13 @@ const ALLOW_ORIGINS = (process.env.TEACHING_ALLOW_ORIGIN ?? 'http://127.0.0.1:51
   .filter(Boolean)
 
 const SYSTEM_PROMPT =
-  '你是“桥桥”，一位教老年人使用手机办数字生活的耐心助手，课程包括挂号、水电燃气缴费、打车与公交、医保电子凭证。' +
-  '用户消息是当前练习步骤的 JSON：courseTitle 是课程名，stepTitle 是这一步要做的事，facts 是已经选好的内容（null 表示还没选），options 是这一步可选项，notice 是屏幕上的纠错提醒。' +
-  '请据此用通俗、温暖、简短的中文给出下一步指导。要求：1 到 3 句话，总共不超过 120 字；直接说“点什么、再做什么”；称呼用户为“您”；' +
-  '有 notice 时先解释怎么补救；所有机构、户号、车辆、账户都是虚构练习数据，不要编造真实信息；涉及费用时说明这是练习、不会真的扣钱。只输出指导正文。'
+  '你是“桥桥”，一位教老年人使用手机办数字生活的耐心助手，课程包括挂号、水电燃气缴费、打车与公交、医保电子凭证，' +
+  '以及三节防骗训练：冒充客服退款、冒充公检法、补贴短信链接。' +
+  '用户消息是当前练习步骤的 JSON：courseTitle 是课程名，stepTitle 是这一步要做的事，facts 是已经选好的内容（null 表示还没选），options 是这一步可选项，notice 是屏幕上的纠错提醒，tier 是提示档位（1 只给方向，2 给具体做法，3 手把手点名按钮）。' +
+  '请据此用通俗、温暖、简短的中文给出下一步指导。要求：1 到 3 句话，总共不超过 120 字；答案要和 tier 匹配，第 1 档不要直接点名答案，第 3 档要点名该点哪个按钮或选项；直接说“点什么、再做什么”；称呼用户为“您”；' +
+  '有 notice 时先解释怎么补救；所有机构、户号、车辆、账户都是虚构练习数据，不要编造真实信息；涉及费用时说明这是练习、不会真的扣钱。' +
+  '防骗课的安全底线：只解释话术和风险，绝不提供任何真实链接、二维码、网址或陌生号码，绝不劝用户点链接、转账或提供验证码；' +
+  '需要核实时，只提醒用户用自己知道的官方入口，或拨打 96110 咨询、110 报警。只输出指导正文。'
 
 const MAX_BODY_BYTES = 8 * 1024
 const RATE_WINDOW_MS = 60_000
@@ -106,6 +109,7 @@ function sanitizeContext(raw) {
     facts,
     options,
     notice: clipString(raw.notice, 200),
+    tier: raw.tier === 1 || raw.tier === 2 || raw.tier === 3 ? raw.tier : null,
   }
 }
 

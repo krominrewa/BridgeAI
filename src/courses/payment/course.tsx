@@ -53,6 +53,15 @@ const welcome: WelcomeContent = {
 const reportNote =
   '“错误操作”指漏选类型、户号、金额或缴费方式就点“下一步”；同一提醒连续重复点击只记 1 次。练习中出错很正常，再练一次会更熟练。'
 
+const VOICE_LINES = [
+  '第 1 步，选择缴费类型。电费、水费还是燃气费，点一下要缴的那一种。',
+  '第 2 步，选择户号。点一个您家在用的户号，注意核对地址。',
+  '第 3 步，查看账单。看清本期用量、应缴金额和最后期限，再点下一步。',
+  '第 4 步，选择金额和缴费方式。先点金额，再点一种缴费方式。',
+  '第 5 步，确认信息。核对户号、地址和金额，没问题再点确认缴费。',
+  '缴费完成。下面是模拟凭证和本次学习小结。',
+]
+
 const engine: CourseEngine<FlowState, ExtraAction> = {
   titles: STEP_TITLES,
   confirmStep: CONFIRM_STEP,
@@ -60,6 +69,66 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   confirmLabel: '确认缴费',
   steps: [TypeStep, AccountStep, BillStep, AmountStep, ConfirmStep, SuccessStep],
   helpPayload,
+  voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['户号不是身份证号，先核对地址和户主', '账单看清用量、金额和最后期限', '全额缴纳和预存要分清'],
+  nextCourse: 'transit',
+  tasks: (state) => {
+    switch (state.step) {
+      case 0:
+        return [
+          {
+            id: 'type',
+            text: '点一下要缴的费用类型：电费、水费或燃气费',
+            done: (s) => Boolean(s.typeId),
+            waiting: '还没有选类型。先点一张费用卡片。',
+          },
+        ]
+      case 1:
+        return [
+          {
+            id: 'account',
+            text: '点一个您家在用的户号，顺便核对地址',
+            done: (s) => Boolean(s.accountId),
+            waiting: '还没有选户号。点一个地址对的户号。',
+          },
+        ]
+      case 2:
+        return [
+          {
+            id: 'bill',
+            text: '把账单的用量、应缴金额和最后期限看一遍',
+            done: () => false,
+            waiting: '看完账单就点“我做好了”，再去选金额。',
+          },
+        ]
+      case 3:
+        return [
+          {
+            id: 'amount',
+            text: '先点缴多少钱',
+            done: (s) => Boolean(s.amountId),
+            waiting: '金额还没选。点一个金额，例如“全额缴纳”。',
+          },
+          {
+            id: 'method',
+            text: '再点一种缴费方式',
+            done: (s) => Boolean(s.methodId),
+            waiting: '缴费方式还没选。点一种方式，练习用哪个都一样。',
+          },
+        ]
+      case 4:
+        return [
+          {
+            id: 'review',
+            text: '核对费用类型、户号、地址和金额',
+            done: () => false,
+            waiting: '核对好后，点最下面的“确认缴费”。这是练习，不会真的扣钱。',
+          },
+        ]
+      default:
+        return []
+    }
+  },
 }
 
 export default function PaymentCourse() {
@@ -71,7 +140,14 @@ export default function PaymentCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="payment"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }

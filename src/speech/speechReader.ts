@@ -1,6 +1,6 @@
 /**
  * 桥桥朗读器：封装 Web Speech API 的中文朗读。
- * 只由用户点击触发，不自动播放，不使用麦克风。
+ * 语音引导开启时由流程自动朗读，也可以由用户点击触发；始终不使用麦克风。
  * 模块级单例：同一时刻最多一条语音，新朗读先取消旧朗读，防止叠加。
  */
 
@@ -50,7 +50,7 @@ function clearPending(): void {
 }
 
 /** 朗读一段文字；重复调用会先停掉上一条，从头朗读新内容。 */
-export function speak(text: string): void {
+export function speak(text: string, rate = 0.92): void {
   if (!synth || !speechSupported || !text) return
   clearPending()
   synth.cancel()
@@ -58,7 +58,7 @@ export function speak(text: string): void {
   utterance.lang = 'zh-CN'
   const voice = pickChineseVoice()
   if (voice) utterance.voice = voice
-  utterance.rate = 0.92
+  utterance.rate = rate
   utterance.onend = () => {
     if (current === utterance) {
       current = null

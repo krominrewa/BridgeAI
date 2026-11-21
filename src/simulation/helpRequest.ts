@@ -24,6 +24,8 @@ export type HelpRequest = {
   options: HelpOption[]
   /** 上一步操作留下的提醒，用于针对性解释。 */
   notice: string | null
+  /** 提示档位：1 方向、2 具体、3 手把手；本地请求可不填。 */
+  tier?: 1 | 2 | 3
 }
 
 export function fact(label: string, value: string | null): HelpFact {

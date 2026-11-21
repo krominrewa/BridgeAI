@@ -1,6 +1,7 @@
-import { LogoMark, SettingsIcon } from './icons'
+import { LogoMark, SettingsIcon, SpeakerIcon } from './icons'
 import { hrefFor, type Route } from '../router'
-import { useSettings } from '../settings/SettingsContext'
+import { SPEECH_RATE_VALUES, useSettings } from '../settings/SettingsContext'
+import { speak, speechSupported, stopSpeech } from '../speech/speechReader'
 
 const NAV_ITEMS: { route: Route; label: string }[] = [
   { route: 'home', label: '首页' },
@@ -14,7 +15,15 @@ type NavBarProps = {
 
 export default function NavBar({ current }: NavBarProps) {
   const activeKey: Route = current === 'simulation' ? 'learning' : current
-  const { setOpen } = useSettings()
+  const { settings, setOpen, setVoiceGuide } = useSettings()
+
+  // 朗读开关放在主导航里：视力障碍用户不必先找到设置面板
+  const toggleVoice = () => {
+    const next = !settings.voiceGuide
+    setVoiceGuide(next)
+    if (next) speak('朗读已开启', SPEECH_RATE_VALUES[settings.speechRate])
+    else stopSpeech()
+  }
 
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-brand-100 bg-white/90 backdrop-blur">
@@ -53,6 +62,27 @@ export default function NavBar({ current }: NavBarProps) {
               </li>
             )
           })}
+          {speechSupported ? (
+            <li>
+              <button
+                type="button"
+                id="voice-toggle-nav"
+                onClick={toggleVoice}
+                aria-pressed={settings.voiceGuide}
+                aria-label={settings.voiceGuide ? '关闭自动朗读' : '开启自动朗读'}
+                className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-base font-semibold transition-colors sm:min-h-[52px] sm:px-4 sm:text-lg ${
+                  settings.voiceGuide
+                    ? 'bg-lagoon-50 text-lagoon-800 hover:bg-lagoon-100'
+                    : 'bg-paper text-ink-soft hover:bg-brand-50'
+                }`}
+              >
+                <span className="h-5 w-5 shrink-0 sm:h-6 sm:w-6">
+                  <SpeakerIcon />
+                </span>
+                朗读{settings.voiceGuide ? '开' : '关'}
+              </button>
+            </li>
+          ) : null}
           <li>
             <button
               type="button"
@@ -65,6 +95,7 @@ export default function NavBar({ current }: NavBarProps) {
               <span className="h-5 w-5 shrink-0 sm:h-6 sm:w-6">
                 <SettingsIcon />
               </span>
+              <span className="sm:hidden">辅助设置</span>
               <span className="hidden sm:inline">显示与辅助</span>
             </button>
           </li>

@@ -13,6 +13,7 @@ import {
   CONFIRM_STEP,
   flowReducer,
   helpPayload,
+  isVerified,
   loadFlowState,
   STEP_TITLES,
   STORAGE_KEY,
@@ -53,6 +54,15 @@ const welcome: WelcomeContent = {
 const reportNote =
   '“错误操作”指漏选场景、使用人或验证方式就点“下一步”，以及验证码填错；同一提醒连续重复点击只记 1 次。练习中出错很正常，再练一次会更熟练。'
 
+const VOICE_LINES = [
+  '第 1 步，认识电子凭证。它和实体医保卡作用一样，看完点下一步。',
+  '第 2 步，选择使用场景。挂号、买药还是结算，点一个。',
+  '第 3 步，选择使用人。第一次练习点本人。',
+  '第 4 步，验证身份。可以填短信验证码，也可以点开始刷脸。',
+  '第 5 步，出示凭证。核对场景和使用人，再点出示凭证。',
+  '凭证已出示。下面是模拟二维码、余额和记录。',
+]
+
 const engine: CourseEngine<FlowState, ExtraAction> = {
   titles: STEP_TITLES,
   confirmStep: CONFIRM_STEP,
@@ -60,6 +70,60 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   confirmLabel: '出示凭证',
   steps: [IntroStep, SceneStep, UserStep, VerifyStep, ConfirmStep, SuccessStep],
   helpPayload,
+  voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['电子凭证和实体医保卡作用一样', '验证码、密码、二维码谁要都不能给', '替家人出示前先确认已绑定亲情账户'],
+  nextCourse: 'fraud-refund',
+  tasks: (state) => {
+    switch (state.step) {
+      case 0:
+        return [
+          {
+            id: 'read',
+            text: '把电子凭证和实体卡的关系看一遍',
+            done: () => false,
+            waiting: '看明白就点“我做好了”，我们实际出示一次。',
+          },
+        ]
+      case 1:
+        return [
+          {
+            id: 'scene',
+            text: '点一下这次要做什么：挂号、买药或结算',
+            done: (s) => Boolean(s.sceneId),
+            waiting: '还没有选场景。第一次练可以点“药店买药”。',
+          },
+        ]
+      case 2:
+        return [
+          {
+            id: 'user',
+            text: '选这次给谁用，第一次练点本人',
+            done: (s) => Boolean(s.userId),
+            waiting: '还没有选使用人。点“本人”那一张。',
+          },
+        ]
+      case 3:
+        return [
+          {
+            id: 'verify',
+            text: '用短信验证码或刷脸通过身份验证',
+            done: (s) => isVerified(s),
+            waiting: '还没有验证通过。先获取验证码并照着输入，或点开始刷脸。',
+          },
+        ]
+      case 4:
+        return [
+          {
+            id: 'review',
+            text: '核对场景、使用人和参保地',
+            done: () => false,
+            waiting: '核对好后，点“出示凭证”。这是练习，不会查询真实医保。',
+          },
+        ]
+      default:
+        return []
+    }
+  },
 }
 
 export default function InsuranceCourse() {
@@ -71,7 +135,14 @@ export default function InsuranceCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="insurance"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }
