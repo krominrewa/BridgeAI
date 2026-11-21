@@ -3,7 +3,14 @@ import { useEffect, useState } from 'react'
 export type Route = 'home' | 'learning' | 'about' | 'simulation'
 
 /** 课程 id 同时作为练习页的 hash 片段，便于分享直达某一课。 */
-export type CourseId = 'appointment' | 'payment' | 'transit' | 'insurance'
+export type CourseId =
+  | 'appointment'
+  | 'payment'
+  | 'transit'
+  | 'insurance'
+  | 'fraud-refund'
+  | 'fraud-official'
+  | 'fraud-subsidy'
 
 export type Location = {
   route: Route
@@ -11,7 +18,15 @@ export type Location = {
   courseId: CourseId
 }
 
-const COURSE_IDS: CourseId[] = ['appointment', 'payment', 'transit', 'insurance']
+const COURSE_IDS: CourseId[] = [
+  'appointment',
+  'payment',
+  'transit',
+  'insurance',
+  'fraud-refund',
+  'fraud-official',
+  'fraud-subsidy',
+]
 
 const DEFAULT_COURSE: CourseId = 'appointment'
 

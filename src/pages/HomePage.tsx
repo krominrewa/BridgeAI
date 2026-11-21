@@ -4,7 +4,7 @@ import VoiceWelcome from '../components/VoiceWelcome'
 import FlowActions from '../components/simulation/FlowActions'
 import FlowProgress from '../components/simulation/FlowProgress'
 import HospitalStep from '../courses/appointment/steps/HospitalStep'
-import { ArrowRightIcon, BridgeBuddy, ChartIcon, CheckIcon, PhoneIcon } from '../components/icons'
+import { ArrowRightIcon, BridgeBuddy, ChartIcon, CheckIcon, PhoneIcon, ShieldIcon } from '../components/icons'
 import { HOSPITALS } from '../data/appointment'
 import { hrefFor } from '../router'
 import { CONFIRM_STEP, initialFlowState, STEP_TITLES, SUCCESS_STEP } from '../courses/appointment/state'
@@ -20,7 +20,13 @@ const FEATURES = [
     icon: <BridgeBuddy />,
     title: '引导助手「桥桥」',
     description: '桥桥用大白话告诉您“现在该点哪里、为什么会这样”，看不懂时点一下就能得到解释。',
-    steps: ['每一步都有大白话说明', '“我需要帮助”随时给提示', '当前为本地规则提示，后续接入大模型'],
+    steps: ['每一步都有大白话说明', '“我需要帮助”随时给提示', '本地规则优先，可选接入 Qoder API 真模型'],
+  },
+  {
+    icon: <ShieldIcon />,
+    title: 'AI 防骗训练',
+    description: '在虚构的电话和短信里认出骗局，学会挂断、核实、不点陌生链接。',
+    steps: ['三节独立课：退款、假警察、补贴短信', '先找破绽，再选做法、练安全操作', '号码和链接都是假的，练错也不会有损失'],
   },
   {
     icon: <ChartIcon />,
@@ -108,7 +114,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-6xl px-5 py-12 lg:py-16">
         <div className="max-w-3xl">
-          <h2 className="text-2xl font-bold text-ink sm:text-3xl">三大核心能力，学习更安心</h2>
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">四大核心能力，学习更安心</h2>
           <p className="mt-3 text-lg text-ink-soft sm:text-xl">
             从“敢点”到“会点”，我们把复杂的手机操作拆成可以反复练习的小步骤。
           </p>
@@ -126,7 +132,7 @@ export default function HomePage() {
           <div>
             <h2 className="text-2xl font-bold sm:text-3xl">现在开始，迈出第一步</h2>
             <p className="mt-2 text-lg text-brand-100">
-              四节情景课已全部开放：挂号、缴费、出行、医保。每节约 10 分钟，不需要任何账号。
+              七节情景课已全部开放：挂号、缴费、出行、医保，以及三节 AI 防骗训练。每节约 10 分钟，不需要任何账号。
             </p>
           </div>
           <a

@@ -10,7 +10,7 @@ export default function LearningCenterPage() {
           <span className="h-6 w-6">
             <CalendarIcon />
           </span>
-          四课已全部开放
+          七课已全部开放
         </p>
         <h1 className="mt-2 text-3xl font-bold text-ink sm:text-4xl">学习中心</h1>
         <p className="mt-2 max-w-3xl text-lg leading-relaxed text-ink-soft">

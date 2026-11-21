@@ -22,6 +22,9 @@ const COURSES = {
   payment: { key: 'bridgeai:payment:v1', confirm: '确认缴费' },
   transit: { key: 'bridgeai:transit:v1', confirm: '确认行程' },
   insurance: { key: 'bridgeai:insurance:v1', confirm: '出示凭证' },
+  'fraud-refund': { key: 'bridgeai:fraud-refund:v1', confirm: '完成训练' },
+  'fraud-official': { key: 'bridgeai:fraud-official:v1', confirm: '完成训练' },
+  'fraud-subsidy': { key: 'bridgeai:fraud-subsidy:v1', confirm: '完成训练' },
 }
 const STORAGE_KEYS = Object.values(COURSES).map((course) => course.key)
 const STORAGE_KEY = COURSES.appointment.key
@@ -821,7 +824,8 @@ const SCENARIOS = [
     route: '#/simulation',
     clip: '.phone-shell',
     speechStub: true,
-    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+    script: `await __qa.clickId('voice-toggle-nav');
+      await __qa.toStep(1); await __qa.click('我需要帮助');
       document.getElementById('speech-toggle').click();
       await __qa.wait(80);
       const playing = { label: __qa.speechLabel(), status: __qa.speechStatus() };
@@ -861,7 +865,8 @@ const SCENARIOS = [
     route: '#/simulation',
     clip: '.phone-shell',
     speechStub: true,
-    script: `await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
+    script: `await __qa.clickId('voice-toggle-nav');
+      await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
       if (!speechSynthesis.speaking) throw new Error('朗读未开始');
       await __qa.click('下一步');
       const afterNext = { speaking: speechSynthesis.speaking, heading: __qa.heading(), panel: Boolean(document.getElementById('help-panel')) };
@@ -883,7 +888,8 @@ const SCENARIOS = [
     route: '#/simulation',
     clip: '.phone-shell',
     speechStub: true,
-    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+    script: `await __qa.clickId('voice-toggle-nav');
+      await __qa.toStep(1); await __qa.click('我需要帮助');
       const toggle = document.getElementById('speech-toggle');
       const replay = document.getElementById('speech-replay');
       toggle.click(); replay.click(); replay.click();
@@ -1091,7 +1097,11 @@ const SCENARIOS = [
     script: `const cards = document.querySelectorAll('article.surface-card').length;
       const upcoming = document.body.innerText.includes('筹备中');
       const links = Array.from(document.querySelectorAll('a[href*="#/simulation/"]')).map((a) => a.getAttribute('href'));
-      if (cards !== 4) throw new Error('学习中心应有 4 张课程卡，实际 ' + cards);
+      if (cards !== 7) throw new Error('学习中心应有 7 张课程卡，实际 ' + cards);
+      const text = document.body.innerText;
+      for (const title of ['识破冒充客服退款', '识破冒充公检法', '识破补贴短信链接']) {
+        if (!text.includes(title)) throw new Error('学习中心缺少防骗课：' + title);
+      }
       if (upcoming) throw new Error('仍有“筹备中”占位文案');
       return { cards, links, overflow: __qa.overflow() }`,
   },
@@ -1291,7 +1301,8 @@ const SCENARIOS = [
     route: '#/simulation/transit',
     fullPage: true,
     script: `const links = Array.from(document.querySelectorAll('aside a[href*="#/simulation/"]')).map((a) => a.getAttribute('href'));
-      if (links.length !== 3) throw new Error('侧栏换课链接应为 3 条，实际 ' + links.length);
+      if (links.length !== 6) throw new Error('侧栏换课链接应为 6 条，实际 ' + links.length);
+      if (!links.some((href) => href.includes('fraud-refund'))) throw new Error('侧栏缺少防骗课入口');
       return { links, overflow: __qa.overflow() }`,
   },
   {
@@ -1567,6 +1578,202 @@ const SCENARIOS = [
       if (!texts[texts.length - 1].includes('还没有选医院')) throw new Error('最后一次朗读不是纠错提醒：' + JSON.stringify(texts));
       return { notice: notice.slice(0, 30), last: texts[texts.length - 1], speaks: __speechCalls.speak }`,
   },
+
+  // ——— 第九阶段：三节独立防骗课 ———
+  {
+    name: 'fraud-refund-welcome-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!text.includes('防骗练习 · 退款骗局')) throw new Error('欢迎页缺少课程名');
+      if (!text.includes('96110')) throw new Error('欢迎页缺少咨询热线');
+      await __qa.start();
+      await __qa.wait(200);
+      const heading = __qa.heading();
+      if (heading !== '先听清这通电话') throw new Error('第一课标题不对：' + heading);
+      const links = document.querySelectorAll('.phone-scroll a[href]').length;
+      if (links !== 0) throw new Error('情境页不应有可点击链接，实际 ' + links);
+      const scene = document.querySelector('.phone-scroll').innerText;
+      if (!scene.includes('虚构')) throw new Error('缺少虚构说明');
+      return { heading, links, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-clue-find-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      if (__qa.heading() !== '找出可疑的地方') throw new Error('第二步标题不对：' + __qa.heading());
+      await __qa.click('下一步');
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('还有 3 处')) throw new Error('没找齐可疑点就放行：' + notice);
+      await __qa.clickId('clue-r1');
+      const foundOne = document.querySelector('.phone-scroll').innerText.includes('已找到 1 / 3 处');
+      await __qa.clickId('clue-r2');
+      const soft = document.querySelector('[role="status"]');
+      if (!soft || !soft.textContent.includes('本身不说明问题')) throw new Error('点正常句子没有解释');
+      if (!foundOne || !document.querySelector('.phone-scroll').innerText.includes('已找到 1 / 3 处')) {
+        throw new Error('点正常句子不应计入可疑点');
+      }
+      await __qa.clickId('clue-r3');
+      await __qa.clickId('clue-r6');
+      const done = document.body.innerText.includes('都找到了');
+      if (!done) throw new Error('找齐后没有完成提示');
+      await __qa.click('下一步');
+      const heading = __qa.heading();
+      if (heading !== '哪一种做法最安全') throw new Error('第三步标题不对：' + heading);
+      return { notice: notice.slice(0, 24), done, heading, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-wrong-action-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.clickId('clue-r1'); await __qa.clickId('clue-r3'); await __qa.clickId('clue-r6');
+      await __qa.click('下一步');
+      await __qa.pick(1);
+      const wrong = __qa.notice();
+      if (!wrong || !wrong.includes('假页面')) throw new Error('错误做法没有解释风险：' + wrong);
+      await __qa.pick(0);
+      if (__qa.notice()) throw new Error('选对后提醒没有消失：' + __qa.notice());
+      if (!document.body.innerText.includes('做得对')) throw new Error('选对后缺少肯定说明');
+      await __qa.click('下一步');
+      const heading = __qa.heading();
+      if (heading !== '现在做一遍安全操作') throw new Error('第四步标题不对：' + heading);
+      return { wrong: wrong.slice(0, 26), heading, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-drill-order-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.clickId('clue-r1'); await __qa.clickId('clue-r3'); await __qa.clickId('clue-r6');
+      await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      await __qa.clickId('drill-check');
+      const order = __qa.notice();
+      if (!order || !order.includes('先做上一步')) throw new Error('跳步没有提醒：' + order);
+      await __qa.clickId('drill-hangup');
+      await __qa.clickId('drill-check');
+      const progress = document.querySelector('.phone-scroll').innerText.includes('已完成 2 / 2 步');
+      if (!progress) throw new Error('安全操作完成计数不对');
+      await __qa.click('下一步');
+      const heading = __qa.heading();
+      if (heading !== '最后两道小测') throw new Error('第五步标题不对：' + heading);
+      return { order: order.slice(0, 24), progress, heading, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-quiz-success-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.clickId('clue-r1'); await __qa.clickId('clue-r3'); await __qa.clickId('clue-r6');
+      await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      await __qa.clickId('drill-hangup'); await __qa.clickId('drill-check'); await __qa.click('下一步');
+      await __qa.click('完成训练');
+      const blocked = __qa.notice();
+      if (!blocked || !blocked.includes('没答对')) throw new Error('没答完小测就结束：' + blocked);
+      await __qa.clickId('quiz-q1-b');
+      const wrong = __qa.notice();
+      if (!wrong || !wrong.includes('不对')) throw new Error('答错没有解释：' + wrong);
+      await __qa.clickId('quiz-q1-a');
+      await __qa.clickId('quiz-q2-a');
+      if (!document.body.innerText.includes('都答对了')) throw new Error('答完后缺少完成提示');
+      await __qa.click('完成训练');
+      await __qa.wait(250);
+      const heading = __qa.heading();
+      if (heading !== '防骗训练完成') throw new Error('完成页标题不对：' + heading);
+      const text = document.querySelector('.phone-scroll').innerText;
+      const code = (text.match(/SAFE-REFUND-\\d{6}/) || [])[0];
+      if (!code) throw new Error('完成页缺少训练编号');
+      if (!text.includes('记住这几条')) throw new Error('完成页缺少安全清单');
+      if (!text.includes('防骗训练记录')) throw new Error('完成页缺少训练记录');
+      const report = __qa.report();
+      if (!report || !report.includes('本次学习小结')) throw new Error('缺少学习小结');
+      return { blocked: blocked.slice(0, 22), wrong: wrong.slice(0, 22), code, report: report.slice(0, 60), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-official-full-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-official',
+    route: '#/simulation/fraud-official',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      if (__qa.heading() !== '先听清这通电话') throw new Error('假警察课标题不对：' + __qa.heading());
+      await __qa.click('下一步');
+      await __qa.clickId('clue-o1'); await __qa.clickId('clue-o3'); await __qa.clickId('clue-o5');
+      await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      await __qa.clickId('drill-hangup'); await __qa.clickId('drill-call'); await __qa.click('下一步');
+      await __qa.clickId('quiz-q1-a'); await __qa.clickId('quiz-q2-a');
+      await __qa.click('完成训练');
+      await __qa.wait(250);
+      const text = document.querySelector('.phone-scroll').innerText;
+      const code = (text.match(/SAFE-OFFICIAL-\\d{6}/) || [])[0];
+      if (!code) throw new Error('假警察课完成页缺少编号');
+      if (!text.includes('真警察不会电话办案')) throw new Error('安全清单内容不对');
+      return { heading: __qa.heading(), code, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-subsidy-sms-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-subsidy',
+    route: '#/simulation/fraud-subsidy',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      const heading = __qa.heading();
+      if (heading !== '先看清这条短信') throw new Error('短信课标题不对：' + heading);
+      const links = document.querySelectorAll('.phone-scroll a[href]').length;
+      if (links !== 0) throw new Error('短信情境不应有可点击链接，实际 ' + links);
+      await __qa.click('下一步');
+      await __qa.clickId('clue-s1'); await __qa.clickId('clue-s2'); await __qa.clickId('clue-s3');
+      if (!document.querySelector('.phone-scroll').innerText.includes('已找到 3 / 3 处')) {
+        throw new Error('短信课可疑点计数不对');
+      }
+      await __qa.click('下一步'); await __qa.pick(0);
+      if (!document.body.innerText.includes('做得对')) throw new Error('短信课正确做法缺少肯定');
+      return { heading, links, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-help-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.click('我需要帮助');
+      const help = __qa.help();
+      if (!help || !help.includes('要钱、要码、要保密')) throw new Error('防骗帮助未点出三类信号：' + (help || '').slice(0, 60));
+      return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
 ]
 
 async function findChrome() {
@@ -1697,7 +1904,7 @@ async function main() {
     // 两个存储分开清理：任一存储抛异常不影响另一个的清理
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
       source: `if (!location.search.includes('reload=1')) {
-        ${STORAGE_KEYS.map((key) => `try { sessionStorage.removeItem('${key}') } catch (e) {}`).join('\n        ')}
+        ${[...STORAGE_KEYS, 'bridgeai:voice-intro:v1'].map((key) => `try { sessionStorage.removeItem('${key}') } catch (e) {}`).join('\n        ')}
         try { localStorage.removeItem('bridgeai:display:v1') } catch (e) {}
         window.__storageCleared = true
       }
