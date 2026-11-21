@@ -23,9 +23,10 @@ const ALLOW_ORIGINS = (process.env.TEACHING_ALLOW_ORIGIN ?? 'http://127.0.0.1:51
   .filter(Boolean)
 
 const SYSTEM_PROMPT =
-  '你是“桥桥”，一位教老年人使用手机挂号的耐心助手。根据给出的练习步骤、用户已选内容和错误提示，用通俗、温暖、简短的中文给出下一步指导。' +
-  '要求：1 到 3 句话，总共不超过 120 字；直接说“点什么、再做什么”；称呼用户为“您”；' +
-  '所有医院与号源都是虚构练习数据，不要编造真实医院信息；涉及费用时说明这是练习、不会真的扣钱。只输出指导正文。'
+  '你是“桥桥”，一位教老年人使用手机办数字生活的耐心助手，课程包括挂号、水电燃气缴费、打车与公交、医保电子凭证。' +
+  '用户消息是当前练习步骤的 JSON：courseTitle 是课程名，stepTitle 是这一步要做的事，facts 是已经选好的内容（null 表示还没选），options 是这一步可选项，notice 是屏幕上的纠错提醒。' +
+  '请据此用通俗、温暖、简短的中文给出下一步指导。要求：1 到 3 句话，总共不超过 120 字；直接说“点什么、再做什么”；称呼用户为“您”；' +
+  '有 notice 时先解释怎么补救；所有机构、户号、车辆、账户都是虚构练习数据，不要编造真实信息；涉及费用时说明这是练习、不会真的扣钱。只输出指导正文。'
 
 const MAX_BODY_BYTES = 8 * 1024
 const RATE_WINDOW_MS = 60_000
@@ -85,22 +86,25 @@ function sanitizeContext(raw) {
   if (typeof raw !== 'object' || raw === null) return null
   const step = raw.step
   if (typeof step !== 'number' || !Number.isInteger(step) || step < 0 || step > 5) return null
-  const departments = Array.isArray(raw.departments)
-    ? raw.departments.slice(0, 12).map((item) => ({
+  const facts = Array.isArray(raw.facts)
+    ? raw.facts.slice(0, 8).map((item) => ({
+        label: clipString(item?.label, 20),
+        value: clipString(item?.value, 60),
+      }))
+    : []
+  const options = Array.isArray(raw.options)
+    ? raw.options.slice(0, 12).map((item) => ({
         name: clipString(item?.name, 40),
         hint: clipString(item?.hint, 60),
       }))
     : []
   return {
+    courseId: clipString(raw.courseId, 24),
+    courseTitle: clipString(raw.courseTitle, 40),
     step,
     stepTitle: clipString(raw.stepTitle, 40),
-    hospitalName: clipString(raw.hospitalName, 60),
-    departmentName: clipString(raw.departmentName, 40),
-    doctorName: clipString(raw.doctorName, 40),
-    departments,
-    dateText: clipString(raw.dateText, 40),
-    slotText: clipString(raw.slotText, 40),
-    slotFull: raw.slotFull === true,
+    facts,
+    options,
     notice: clipString(raw.notice, 200),
   }
 }

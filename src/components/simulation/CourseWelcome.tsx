@@ -1,14 +1,15 @@
 import { BridgeBuddy, CheckIcon, SettingsIcon } from '../icons'
+import type { WelcomeContent } from '../../simulation/courseFlow'
 import { useSettings } from '../../settings/SettingsContext'
 
-const LEARN_POINTS = ['学会选择医院和科室', '学会选择医生与看病时间', '看懂预约成功的提示']
-
-type WelcomeScreenProps = {
+type CourseWelcomeProps = {
+  welcome: WelcomeContent
   onStart: () => void
 }
 
-export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
+export default function CourseWelcome({ welcome, onStart }: CourseWelcomeProps) {
   const { setOpen } = useSettings()
+
   return (
     <>
       <div className="phone-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5">
@@ -16,19 +17,15 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           <span className="h-16 w-16 shrink-0">
             <BridgeBuddy />
           </span>
-          <div>
-            <h2 className="text-[26px] font-bold leading-snug text-ink">
-              欢迎使用
-              <br />
-              模拟挂号
-            </h2>
-          </div>
+          <h2 className="text-[26px] font-bold leading-snug text-ink">
+            欢迎使用
+            <br />
+            {welcome.name}
+          </h2>
         </div>
-        <p className="mt-4 text-lg leading-relaxed text-ink-soft">
-          这是一部练习手机，我是引导助手桥桥。一共 6 步，约 10 分钟，我会带您从头到尾挂一次号。
-        </p>
+        <p className="mt-4 text-lg leading-relaxed text-ink-soft">{welcome.lead}</p>
         <ul className="mt-5 space-y-2.5">
-          {LEARN_POINTS.map((point) => (
+          {welcome.points.map((point) => (
             <li
               key={point}
               className="flex items-start gap-3 rounded-2xl border border-brand-100 bg-white px-4 py-3 text-lg text-ink"
@@ -40,9 +37,7 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-base leading-relaxed text-ink-muted">
-          全程使用虚构的医院和医生，不需要账号，也不会扣钱。
-        </p>
+        <p className="mt-4 text-base leading-relaxed text-ink-muted">{welcome.note}</p>
       </div>
 
       <div className="safe-bottom flex flex-wrap gap-2 border-t border-brand-100 bg-white px-4 pt-3">

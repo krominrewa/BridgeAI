@@ -1,42 +1,17 @@
-import { ArrowRightIcon, CheckIcon, LockIcon } from './icons'
-import { hrefFor } from '../router'
+import { ArrowRightIcon, CheckIcon } from './icons'
+import { hrefFor, type CourseId } from '../router'
 
 type CourseCardProps = {
   title: string
   summary: string
   badge: string
+  course: CourseId
   facts?: string[]
   steps?: string[]
   intro?: string
-  locked?: boolean
 }
 
-export default function CourseCard({
-  title,
-  summary,
-  badge,
-  facts = [],
-  steps = [],
-  intro,
-  locked = false,
-}: CourseCardProps) {
-  if (locked) {
-    return (
-      <article className="h-full rounded-2xl border border-dashed border-brand-200 bg-paper px-4 py-4">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="text-lg font-bold leading-snug text-ink-soft">{title}</h2>
-          <span className="badge shrink-0 border border-brand-200 bg-white text-ink-soft">
-            <span className="h-4 w-4">
-              <LockIcon />
-            </span>
-            未开放
-          </span>
-        </div>
-        <p className="mt-1.5 text-base leading-relaxed text-ink-muted">{summary}</p>
-      </article>
-    )
-  }
-
+export default function CourseCard({ title, summary, badge, course, facts = [], steps = [], intro }: CourseCardProps) {
   return (
     <article className="surface-card hover:border-brand-200 hover:shadow-card-hover">
       <div className="flex flex-wrap items-center gap-2">
@@ -66,7 +41,10 @@ export default function CourseCard({
       ) : null}
 
       <div className="mt-4">
-        <a href={hrefFor('simulation')} className="btn btn-primary w-full justify-center sm:w-auto sm:min-w-[240px]">
+        <a
+          href={hrefFor('simulation', course)}
+          className="btn btn-primary w-full justify-center sm:w-auto sm:min-w-[240px]"
+        >
           进入模拟训练
           <span className="h-6 w-6">
             <ArrowRightIcon />

@@ -7,7 +7,7 @@ import LearningCenterPage from './pages/LearningCenterPage'
 import AboutPage from './pages/AboutPage'
 import SimulationPage from './pages/SimulationPage'
 import { SettingsProvider } from './settings/SettingsContext'
-import { useRoute, type Route } from './router'
+import { useLocation, type Route } from './router'
 
 const PAGES: Record<Route, ComponentType> = {
   home: HomePage,
@@ -17,7 +17,7 @@ const PAGES: Record<Route, ComponentType> = {
 }
 
 export default function App() {
-  const route = useRoute()
+  const { route, courseId } = useLocation()
   const Page = PAGES[route]
   // 练习页在移动端占满视口、隐藏页脚，避免外层网页与模拟器双重滚动
   const immersive = route === 'simulation'
@@ -45,7 +45,7 @@ export default function App() {
           className={`flex-1 focus:outline-none ${immersive ? 'flex min-h-0 flex-col lg:block lg:min-h-[auto]' : ''}`}
         >
           <div
-            key={route}
+            key={`${route}:${courseId}`}
             className={`animate-fade-up ${immersive ? 'flex min-h-0 flex-1 flex-col lg:block lg:flex-none lg:min-h-[auto]' : ''}`}
           >
             <Page />

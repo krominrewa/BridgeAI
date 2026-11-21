@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { BridgeBuddy, RepeatIcon, SpeakerIcon, StopIcon } from '../icons'
-import type { FlowState } from '../../simulation/appointmentState'
-import { buildTeachingRequest, requestTeaching, teachingConfigured } from '../../simulation/teachingAssistant'
+import type { HelpRequest } from '../../simulation/helpRequest'
+import { requestTeaching, teachingConfigured } from '../../simulation/teachingAssistant'
 import { getSpeechState, speak, speechSupported, stopSpeech, subscribeSpeechState } from '../../speech/speechReader'
 
 type HelpPanelProps = {
-  state: FlowState
+  /** 本地规则生成的提示文字，始终先显示，AI 返回后替换。 */
+  text: string
+  payload: HelpRequest
   onDismiss: () => void
 }
 
@@ -18,9 +20,8 @@ const SOURCE_LABELS: Record<AssistStatus, string> = {
   failed: '本地规则提示 · 智能助手暂不可用',
 }
 
-export default function HelpPanel({ state, onDismiss }: HelpPanelProps) {
-  const localText = state.help ?? ''
-  const [assist, setAssist] = useState<{ status: AssistStatus; text: string }>({ status: 'local', text: localText })
+export default function HelpPanel({ text, payload, onDismiss }: HelpPanelProps) {
+  const [assist, setAssist] = useState<{ status: AssistStatus; text: string }>({ status: 'local', text })
   const [speechState, setSpeechState] = useState(getSpeechState)
   const [speechTouched, setSpeechTouched] = useState(false)
 
@@ -28,8 +29,8 @@ export default function HelpPanel({ state, onDismiss }: HelpPanelProps) {
   useEffect(() => {
     if (!teachingConfigured) return
     let active = true
-    setAssist({ status: 'loading', text: localText })
-    void requestTeaching(buildTeachingRequest(state)).then((result) => {
+    setAssist({ status: 'loading', text })
+    void requestTeaching(payload, text).then((result) => {
       if (!active) return
       if (result.source === 'ai') {
         stopSpeech()
@@ -41,7 +42,7 @@ export default function HelpPanel({ state, onDismiss }: HelpPanelProps) {
     return () => {
       active = false
     }
-    // 面板按 hints 计数重挂载，每次打开提示都基于最新状态请求一次
+    // 面板按求助次数重新挂载，每次打开提示都基于最新状态请求一次
   }, [])
 
   useEffect(() => subscribeSpeechState(setSpeechState), [])

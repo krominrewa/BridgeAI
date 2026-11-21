@@ -19,16 +19,20 @@ function readBody(req) {
 
 function mockGuidance(context) {
   const parts = ['【智能桥桥】']
-  if (context.notice && context.notice.includes('约满')) {
-    parts.push('您点的时间段约满了，别着急，换一个写着“还剩几个号”的时间，再点“下一步”。')
-  } else if (context.step === 1) {
-    parts.push(
-      context.departmentName
-        ? `科室已选${context.departmentName}，点“下一步”去看医生。`
-        : '想想您哪里不舒服，点最接近的科室，再点“下一步”。',
-    )
+  if (context.notice) {
+    parts.push(`先别急，屏幕上的提醒说了怎么补救：${context.notice}`)
   } else {
-    parts.push(`现在练习“${context.stepTitle ?? '下一步'}”，按屏幕上的蓝色按钮继续就好。`)
+    const chosen = (context.facts ?? [])
+      .filter((item) => item && item.value)
+      .map((item) => `${item.label}已选${item.value}`)
+    parts.push(
+      chosen.length
+        ? `${chosen.join('，')}。`
+        : `现在这一步是“${context.stepTitle ?? '继续'}”，先点一个选项。`,
+    )
+    const first = (context.options ?? [])[0]
+    if (first?.name) parts.push(`拿不准的话，可以先点“${first.name}”。`)
+    parts.push('然后点屏幕下方蓝色的按钮继续。')
   }
   parts.push('这是练习，不会真的扣钱。')
   return parts.join('')

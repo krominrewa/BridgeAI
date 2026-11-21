@@ -1,28 +1,51 @@
 import { useEffect, useRef } from 'react'
+import type { Dispatch } from 'react'
+import CourseWelcome from './CourseWelcome'
 import FlowActions from './FlowActions'
 import FlowProgress from './FlowProgress'
 import HelpPanel from './HelpPanel'
+import LearningReport from './LearningReport'
 import NoticeBar from './NoticeBar'
-import ConfirmStep from './steps/ConfirmStep'
-import DepartmentStep from './steps/DepartmentStep'
-import DoctorStep from './steps/DoctorStep'
-import HospitalStep from './steps/HospitalStep'
-import ScheduleStep from './steps/ScheduleStep'
-import SuccessStep from './steps/SuccessStep'
-import type { StepProps } from './stepProps'
 import { BridgeBuddy, SettingsIcon } from '../icons'
-import { SUCCESS_STEP } from '../../simulation/appointmentState'
+import { hrefFor } from '../../router'
+import type { CourseEngine, WelcomeContent } from '../../simulation/courseFlow'
+import type { FlowActionBase, FlowBase } from '../../simulation/flowKit'
+import { buildLearningReport } from '../../simulation/learningReport'
 import { useSettings } from '../../settings/SettingsContext'
 import { stopSpeech } from '../../speech/speechReader'
 
-const STEP_COMPONENTS = [HospitalStep, DepartmentStep, DoctorStep, ScheduleStep, ConfirmStep, SuccessStep]
+type CourseShellProps<S extends FlowBase, X extends { type: string }> = {
+  engine: CourseEngine<S, X>
+  welcome: WelcomeContent
+  /** 各课程对“什么算一次错误操作”的说明，随学习小结显示。 */
+  reportNote: string
+  state: S
+  dispatch: Dispatch<FlowActionBase | X>
+}
 
-export default function AppointmentFlow({ state, dispatch }: StepProps) {
-  const StepComponent = STEP_COMPONENTS[state.step] ?? HospitalStep
-  const finished = state.step === SUCCESS_STEP
+/** 课程练习的统一外壳：欢迎页、步骤进度、帮助与提醒、底部操作栏都由这里编排。 */
+export default function CourseShell<S extends FlowBase, X extends { type: string }>({
+  engine,
+  welcome,
+  reportNote,
+  state,
+  dispatch,
+}: CourseShellProps<S, X>) {
+  const StepComponent = engine.steps[state.step] ?? engine.steps[0]
+  const finished = state.step === engine.successStep
   const lastStep = useRef(state.step)
+  const wasStarted = useRef(state.started)
   const noticeRef = useRef<HTMLDivElement>(null)
   const { setOpen } = useSettings()
+
+  // 欢迎页与练习流程切换时，把焦点交给新出现的主要操作，避免键盘焦点丢回页面顶部
+  useEffect(() => {
+    const justStarted = !wasStarted.current && state.started
+    const justExited = wasStarted.current && !state.started
+    wasStarted.current = state.started
+    if (justStarted) document.getElementById('step-heading')?.focus()
+    if (justExited) document.getElementById('start-simulation')?.focus()
+  }, [state.started])
 
   // 换步骤后停止旧朗读，并把焦点交给新步骤的标题，键盘与读屏用户不用从头 Tab
   useEffect(() => {
@@ -40,10 +63,14 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
     }
   }, [state.noticeSeq, state.notice])
 
+  if (!state.started) {
+    return <CourseWelcome welcome={welcome} onStart={() => dispatch({ type: 'start' })} />
+  }
+
   return (
     <>
       <div className="phone-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-3">
-        <FlowProgress step={state.step} />
+        <FlowProgress step={state.step} titles={engine.titles} successStep={engine.successStep} />
 
         {finished ? null : (
           <>
@@ -77,7 +104,8 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
             {state.help ? (
               <HelpPanel
                 key={state.stats.hints}
-                state={state}
+                text={state.help}
+                payload={engine.helpPayload(state)}
                 onDismiss={() => {
                   dispatch({ type: 'dismissHelp' })
                   document.getElementById('help-button')?.focus()
@@ -88,6 +116,22 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
         )}
 
         <StepComponent state={state} dispatch={dispatch} />
+
+        {finished ? (
+          <>
+            <LearningReport
+              report={buildLearningReport(state, {
+                titles: engine.titles,
+                confirmStep: engine.confirmStep,
+                successStep: engine.successStep,
+              })}
+              note={reportNote}
+            />
+            <a href={hrefFor('learning')} className="btn btn-ghost mt-4 w-full">
+              返回学习中心
+            </a>
+          </>
+        ) : null}
 
         <div ref={noticeRef} tabIndex={-1} className="scroll-mb-4">
           {state.notice ? <NoticeBar key={state.noticeSeq} text={state.notice} /> : null}
@@ -116,6 +160,8 @@ export default function AppointmentFlow({ state, dispatch }: StepProps) {
         ) : (
           <FlowActions
             step={state.step}
+            confirmStep={engine.confirmStep}
+            confirmLabel={engine.confirmLabel}
             onPrev={() => dispatch({ type: 'prev' })}
             onNext={() => dispatch({ type: 'next' })}
           />
