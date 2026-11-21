@@ -37,11 +37,12 @@ export default function SimulationPage() {
             </div>
             <p className="mt-4 text-lg leading-relaxed text-ink-soft">
               每一步都有“我需要帮助”按钮：点一下，桥桥会根据您当前的选择，用大白话说明下一步该点哪里。
-              提示由稳定的本地规则生成，界面上也如实标注，不是实时 AI 回答；后续可替换为 AI 模型，不影响练习本身。
+              提示默认由本地规则生成，稳定、随时可用；配置教学代理并接入 Qoder API 后，会先请模型生成更贴合的说明，
+              网络超时或不可用就自动回到本地提示，并如实标注来源。
             </p>
             <p className="mt-3 text-lg leading-relaxed text-ink-soft">
               漏选必要内容时，会出现琥珀色的“请注意”提醒，告诉您缺什么、怎么补；
-              桥桥的帮助卡片是青绿色，两者一眼就能分清。
+              桥桥的帮助卡片是青绿色，两者一眼就能分清。防骗课里，桥桥只解释话术和风险，不会给出任何真实链接。
             </p>
           </section>
 

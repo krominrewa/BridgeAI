@@ -78,7 +78,7 @@ export default function ChoiceButton({
             {description}
           </span>
         ) : null}
-        {meta ? <span className="mt-1 block text-base font-medium text-ink-muted">{meta}</span> : null}
+        {meta ? <span className="simple-hide mt-1 block text-base font-medium text-ink-muted">{meta}</span> : null}
         {selected ? (
           <span className="mt-1.5 flex items-center gap-1.5 text-base font-bold text-brand-700">
             <span className="h-4 w-4">

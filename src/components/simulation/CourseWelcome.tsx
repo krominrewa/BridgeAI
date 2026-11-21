@@ -4,10 +4,12 @@ import { useSettings } from '../../settings/SettingsContext'
 
 type CourseWelcomeProps = {
   welcome: WelcomeContent
+  /** 上次完成的摘要，例如“11 月 20 日 · 错误 1 次 · 用时 2 分钟”。 */
+  lastPractice?: string | null
   onStart: () => void
 }
 
-export default function CourseWelcome({ welcome, onStart }: CourseWelcomeProps) {
+export default function CourseWelcome({ welcome, lastPractice, onStart }: CourseWelcomeProps) {
   const { setOpen } = useSettings()
 
   return (
@@ -24,7 +26,15 @@ export default function CourseWelcome({ welcome, onStart }: CourseWelcomeProps) 
           </h2>
         </div>
         <p className="mt-4 text-lg leading-relaxed text-ink-soft">{welcome.lead}</p>
-        <ul className="mt-5 space-y-2.5">
+        {lastPractice ? (
+          <p
+            id="last-practice"
+            className="mt-4 rounded-xl border border-lagoon-200 bg-lagoon-50 px-3 py-2.5 text-base leading-relaxed text-lagoon-900"
+          >
+            上次练习：{lastPractice}。再走一遍，会比上次更熟。
+          </p>
+        ) : null}
+        <ul className="simple-hide mt-5 space-y-2.5">
           {welcome.points.map((point) => (
             <li
               key={point}

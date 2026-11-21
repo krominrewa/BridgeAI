@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { BridgeBuddy, RepeatIcon, SpeakerIcon, StopIcon } from '../icons'
 import type { HelpRequest } from '../../simulation/helpRequest'
 import { requestTeaching, teachingConfigured } from '../../simulation/teachingAssistant'
+import { SPEECH_RATE_VALUES, useSettings } from '../../settings/SettingsContext'
 import { getSpeechState, speak, speechSupported, stopSpeech, subscribeSpeechState } from '../../speech/speechReader'
 
 type HelpPanelProps = {
   /** 本地规则生成的提示文字，始终先显示，AI 返回后替换。 */
   text: string
+  tier: 1 | 2 | 3
   payload: HelpRequest
+  onMore: () => void
   onDismiss: () => void
 }
 
@@ -20,10 +23,14 @@ const SOURCE_LABELS: Record<AssistStatus, string> = {
   failed: '本地规则提示 · 智能助手暂不可用',
 }
 
-export default function HelpPanel({ text, payload, onDismiss }: HelpPanelProps) {
+const TIER_LABELS = ['先给方向', '具体做法', '手把手'] as const
+
+export default function HelpPanel({ text, tier, payload, onMore, onDismiss }: HelpPanelProps) {
   const [assist, setAssist] = useState<{ status: AssistStatus; text: string }>({ status: 'local', text })
   const [speechState, setSpeechState] = useState(getSpeechState)
   const [speechTouched, setSpeechTouched] = useState(false)
+  const { settings } = useSettings()
+  const speechRate = SPEECH_RATE_VALUES[settings.speechRate]
 
   // 配置了安全代理时异步请求 AI 指导；失败自动回退本地规则，文字提示始终先显示
   useEffect(() => {
@@ -56,12 +63,12 @@ export default function HelpPanel({ text, payload, onDismiss }: HelpPanelProps) 
   const handleToggle = () => {
     setSpeechTouched(true)
     if (speaking) stopSpeech()
-    else speak(displayedText)
+    else speak(displayedText, speechRate)
   }
 
   const handleReplay = () => {
     setSpeechTouched(true)
-    speak(displayedText)
+    speak(displayedText, speechRate)
   }
 
   return (
@@ -80,9 +87,29 @@ export default function HelpPanel({ text, payload, onDismiss }: HelpPanelProps) 
           </p>
         </div>
       </div>
-      <p id="help-text" className="mt-3 text-lg leading-relaxed text-ink">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span id="help-tier" className="badge bg-white text-lagoon-800">
+          提示 {tier} / 3 · {TIER_LABELS[tier - 1]}
+        </span>
+      </div>
+      <p id="help-text" className="mt-2 text-lg leading-relaxed text-ink">
         {displayedText}
       </p>
+
+      {tier < 3 ? (
+        <button
+          type="button"
+          id="help-more"
+          onClick={onMore}
+          className="btn btn-secondary mt-3 min-h-[52px] w-full text-lg"
+        >
+          说得再具体一点
+        </button>
+      ) : (
+        <p id="help-tier-max" className="mt-3 rounded-xl bg-white px-3 py-2 text-base leading-relaxed text-ink-soft">
+          这已经是最具体的提示了。还是不行，就点“读给我听”，或让家人陪您一起看。
+        </p>
+      )}
 
       {speechSupported ? (
         <>

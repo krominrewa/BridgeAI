@@ -17,7 +17,7 @@ export default function FlowProgress({ step, titles, successStep }: FlowProgress
         </p>
         <p className="text-base font-semibold text-ink-soft">{titles[step]}</p>
       </div>
-      <ol className="mt-2 flex items-center gap-[4px]" aria-hidden="true">
+      <ol className="simple-hide mt-2 flex items-center gap-[4px]" aria-hidden="true">
         {titles.map((title, index) => {
           const done = index < step || finished
           const current = index === step && !finished

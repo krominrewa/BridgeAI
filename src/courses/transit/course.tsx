@@ -53,6 +53,15 @@ const welcome: WelcomeContent = {
 const reportNote =
   '“错误操作”指漏选方式、目的地、上车点或车辆就点“下一步”，以及点了不能等的上车点或约不到的车；同一提醒连续重复点击只记 1 次。练习中出错很正常，再练一次会更熟练。'
 
+const VOICE_LINES = [
+  '第 1 步，选择出行方式。想快一点打车，想省钱坐公交。',
+  '第 2 步，选择目的地。点一个要去的地址。',
+  '第 3 步，选择上车点。选小区门口或人行道上的站牌，别选马路中间。',
+  '第 4 步，选车或线路。打车选车型，公交选一条能坐的线路。',
+  '第 5 步，确认行程。核对目的地、上车点、车型或线路和费用。',
+  '出行完成。下面是模拟行程信息和乘车提醒。',
+]
+
 const engine: CourseEngine<FlowState, ExtraAction> = {
   titles: STEP_TITLES,
   confirmStep: CONFIRM_STEP,
@@ -60,6 +69,67 @@ const engine: CourseEngine<FlowState, ExtraAction> = {
   confirmLabel: '确认行程',
   steps: [ModeStep, DestinationStep, PickupStep, VehicleStep, ConfirmStep, SuccessStep],
   helpPayload,
+  voiceLine: (state) => VOICE_LINES[state.step] ?? VOICE_LINES[0],
+  takeaways: ['上车点选人行道或小区门口，不选马路中间', '打车先核对车牌，公交先看首末班', '确认前核对目的地和费用'],
+  nextCourse: 'insurance',
+  tasks: (state) => {
+    switch (state.step) {
+      case 0:
+        return [
+          {
+            id: 'mode',
+            text: '想好打车还是坐公交，点一下',
+            done: (s) => Boolean(s.mode),
+            waiting: '还没有选出行方式。想快就打车，想省钱就坐公交。',
+          },
+        ]
+      case 1:
+        return [
+          {
+            id: 'destination',
+            text: '点一个要去的地址',
+            done: (s) => Boolean(s.destinationId),
+            waiting: '还没有选目的地。点一个常去的地方。',
+          },
+        ]
+      case 2:
+        return [
+          {
+            id: 'pickup',
+            text: '选一个安全的上车点：小区门口或人行道站牌',
+            done: (s) => Boolean(s.pickupId),
+            waiting: '还没有选上车点。不要选马路中间的地方。',
+          },
+        ]
+      case 3:
+        return [
+          state.mode === 'bus'
+            ? {
+                id: 'route',
+                text: '点一条能坐的公交线路',
+                done: (s) => Boolean(s.routeId),
+                waiting: '还没有选线路。点一条写着“直达”的线路最省心。',
+              }
+            : {
+                id: 'car',
+                text: '点一种能叫到的车型',
+                done: (s) => Boolean(s.carId),
+                waiting: '还没有选车型。第一次练可以点“快车（最常用）”。',
+              },
+        ]
+      case 4:
+        return [
+          {
+            id: 'review',
+            text: '核对目的地、上车点、车型或线路和费用',
+            done: () => false,
+            waiting: '核对好后，点最下面的“确认行程”。这是练习，不会真的叫车。',
+          },
+        ]
+      default:
+        return []
+    }
+  },
 }
 
 export default function TransitCourse() {
@@ -71,7 +141,14 @@ export default function TransitCourse() {
       title="模拟手机"
       onExit={state.started ? () => dispatch({ type: 'exit' }) : undefined}
     >
-      <CourseShell engine={engine} welcome={welcome} reportNote={reportNote} state={state} dispatch={dispatch} />
+      <CourseShell
+        courseId="transit"
+        engine={engine}
+        welcome={welcome}
+        reportNote={reportNote}
+        state={state}
+        dispatch={dispatch}
+      />
     </PhoneFrame>
   )
 }

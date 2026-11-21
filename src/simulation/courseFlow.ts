@@ -1,4 +1,5 @@
 import { useEffect, useReducer, type ComponentType, type Dispatch } from 'react'
+import type { CourseId } from '../router'
 import type { FlowActionBase, FlowBase } from './flowKit'
 import { saveStoredFlow } from './flowKit'
 import type { HelpRequest } from './helpRequest'
@@ -17,6 +18,15 @@ export type WelcomeContent = {
   note: string
 }
 
+/** 逐步操作模式下的一个小动作，例如「先选一个看病的日期」。 */
+export type MicroTask<S> = {
+  id: string
+  text: string
+  done: (state: S) => boolean
+  /** 还没完成就点「我做好了」时的温和提醒。 */
+  waiting: string
+}
+
 export type CourseEngine<S extends FlowBase, X extends { type: string }> = {
   titles: string[]
   confirmStep: number
@@ -26,6 +36,14 @@ export type CourseEngine<S extends FlowBase, X extends { type: string }> = {
   steps: ComponentType<CourseStepProps<S, X>>[]
   /** 交给教学代理的结构化上下文；本地提示文字由各课程自己生成。 */
   helpPayload: (state: S) => HelpRequest
+  /** 语音引导每步朗读的两句话；不提供时用步骤名兜底。 */
+  voiceLine?: (state: S) => string
+  /** 逐步操作模式的小动作；不提供时本步不拆分。 */
+  tasks?: (state: S) => MicroTask<S>[]
+  /** 本课最该记住的几条要点，写进学习小结。 */
+  takeaways?: string[]
+  /** 学得顺利时推荐的下一课；不提供表示已经是最后一课。 */
+  nextCourse?: CourseId
 }
 
 export function useCourseFlow<S extends FlowBase, X extends { type: string }>(

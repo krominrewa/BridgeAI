@@ -22,6 +22,9 @@ const COURSES = {
   payment: { key: 'bridgeai:payment:v1', confirm: '确认缴费' },
   transit: { key: 'bridgeai:transit:v1', confirm: '确认行程' },
   insurance: { key: 'bridgeai:insurance:v1', confirm: '出示凭证' },
+  'fraud-refund': { key: 'bridgeai:fraud-refund:v1', confirm: '完成训练' },
+  'fraud-official': { key: 'bridgeai:fraud-official:v1', confirm: '完成训练' },
+  'fraud-subsidy': { key: 'bridgeai:fraud-subsidy:v1', confirm: '完成训练' },
 }
 const STORAGE_KEYS = Object.values(COURSES).map((course) => course.key)
 const STORAGE_KEY = COURSES.appointment.key
@@ -37,8 +40,9 @@ window.__qa = {
     el.click()
     await window.__qa.wait(140)
   },
+  // 只取练习手机内容区的选项；导航的“朗读开/关”也用 aria-pressed，不能算课程选项
   choices: () =>
-    Array.from(document.querySelectorAll('button[aria-pressed]')).filter((el) => !el.closest('dialog')),
+    Array.from(document.querySelectorAll('.phone-scroll button[aria-pressed]')).filter((el) => !el.closest('dialog')),
   pick: async (index) => {
     const list = window.__qa.choices().filter((b) => b.getAttribute('aria-disabled') !== 'true')
     if (!list[index]) throw new Error('没有第 ' + index + ' 个可选项')
@@ -170,7 +174,16 @@ window.__qa = {
     font: document.documentElement.dataset.font,
     contrast: document.documentElement.dataset.contrast,
     motion: document.documentElement.dataset.motion,
+    simple: document.documentElement.dataset.simple,
+    guided: document.documentElement.dataset.guided,
   }),
+  settings: () => {
+    try {
+      return JSON.parse(localStorage.getItem('bridgeai:display:v1') || 'null')
+    } catch {
+      return null
+    }
+  },
   rootPx: () => getComputedStyle(document.documentElement).fontSize,
   dialogOpen: () => {
     const d = document.querySelector('dialog')
@@ -650,7 +663,7 @@ const SCENARIOS = [
       if (initial === 'true') await __qa.clickId('motion-switch');
       return { attrs: __qa.attrs(), switchInitial: initial,
         switchChecked: __qa.id('motion-switch').getAttribute('aria-checked'),
-        noteMentionsSystem: __qa.id('motion-note').textContent.includes('系统') }`,
+        noteMentionsSystem: __qa.id('motion-switch-note').textContent.includes('系统') }`,
   },
   {
     name: 'error-1-before-mobile',
@@ -811,7 +824,8 @@ const SCENARIOS = [
     route: '#/simulation',
     clip: '.phone-shell',
     speechStub: true,
-    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+    script: `await __qa.clickId('voice-toggle-nav');
+      await __qa.toStep(1); await __qa.click('我需要帮助');
       document.getElementById('speech-toggle').click();
       await __qa.wait(80);
       const playing = { label: __qa.speechLabel(), status: __qa.speechStatus() };
@@ -851,7 +865,8 @@ const SCENARIOS = [
     route: '#/simulation',
     clip: '.phone-shell',
     speechStub: true,
-    script: `await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
+    script: `await __qa.clickId('voice-toggle-nav');
+      await __qa.toStep(1); await __qa.click('我需要帮助'); await __qa.clickId('speech-toggle');
       if (!speechSynthesis.speaking) throw new Error('朗读未开始');
       await __qa.click('下一步');
       const afterNext = { speaking: speechSynthesis.speaking, heading: __qa.heading(), panel: Boolean(document.getElementById('help-panel')) };
@@ -873,7 +888,8 @@ const SCENARIOS = [
     route: '#/simulation',
     clip: '.phone-shell',
     speechStub: true,
-    script: `await __qa.toStep(1); await __qa.click('我需要帮助');
+    script: `await __qa.clickId('voice-toggle-nav');
+      await __qa.toStep(1); await __qa.click('我需要帮助');
       const toggle = document.getElementById('speech-toggle');
       const replay = document.getElementById('speech-replay');
       toggle.click(); replay.click(); replay.click();
@@ -1081,7 +1097,11 @@ const SCENARIOS = [
     script: `const cards = document.querySelectorAll('article.surface-card').length;
       const upcoming = document.body.innerText.includes('筹备中');
       const links = Array.from(document.querySelectorAll('a[href*="#/simulation/"]')).map((a) => a.getAttribute('href'));
-      if (cards !== 4) throw new Error('学习中心应有 4 张课程卡，实际 ' + cards);
+      if (cards !== 7) throw new Error('学习中心应有 7 张课程卡，实际 ' + cards);
+      const text = document.body.innerText;
+      for (const title of ['识破冒充客服退款', '识破冒充公检法', '识破补贴短信链接']) {
+        if (!text.includes(title)) throw new Error('学习中心缺少防骗课：' + title);
+      }
       if (upcoming) throw new Error('仍有“筹备中”占位文案');
       return { cards, links, overflow: __qa.overflow() }`,
   },
@@ -1164,6 +1184,7 @@ const SCENARIOS = [
     clip: '.phone-shell',
     script: `await __qa.advance(1);
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help.includes('户号')) throw new Error('缴费课帮助未解释户号：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
@@ -1269,6 +1290,7 @@ const SCENARIOS = [
     clip: '.phone-shell',
     script: `await __qa.advance(2);
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help.includes('马路中间')) throw new Error('上车点帮助缺少安全说明：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
@@ -1281,7 +1303,8 @@ const SCENARIOS = [
     route: '#/simulation/transit',
     fullPage: true,
     script: `const links = Array.from(document.querySelectorAll('aside a[href*="#/simulation/"]')).map((a) => a.getAttribute('href'));
-      if (links.length !== 3) throw new Error('侧栏换课链接应为 3 条，实际 ' + links.length);
+      if (links.length !== 6) throw new Error('侧栏换课链接应为 6 条，实际 ' + links.length);
+      if (!links.some((href) => href.includes('fraud-refund'))) throw new Error('侧栏缺少防骗课入口');
       return { links, overflow: __qa.overflow() }`,
   },
   {
@@ -1393,9 +1416,469 @@ const SCENARIOS = [
     clip: '.phone-shell',
     script: `await __qa.advance(1);
       await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
       const help = __qa.help();
       if (!help.includes('药店买药')) throw new Error('场景帮助未列举场景：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
+
+  // ——— 第八阶段：简洁模式、逐步操作、语音引导与全站设置 ———
+  {
+    name: 'home-voice-autoplay-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/',
+    fullPage: true,
+    speechStub: true,
+    script: `for (let i = 0; i < 40 && !document.getElementById('voice-welcome-toggle'); i++) await __qa.wait(150);
+      const bar = document.getElementById('voice-welcome-toggle');
+      if (!bar) throw new Error('首页缺少朗读开关');
+      await __qa.wait(900);
+      if (bar.getAttribute('aria-pressed') !== 'true') throw new Error('朗读默认未开启');
+      if (!__speechCalls || __speechCalls.speak < 1) throw new Error('进入首页没有自动朗读');
+      if (!__speechCalls.texts.some((t) => t.includes('欢迎来到数字桥梁'))) throw new Error('欢迎语内容不对：' + JSON.stringify(__speechCalls.texts));
+      const nav = document.getElementById('voice-toggle-nav');
+      if (!nav || nav.getAttribute('aria-pressed') !== 'true') throw new Error('主导航朗读开关状态不对');
+      return { speaks: __speechCalls.speak, texts: __speechCalls.texts, nav: nav.textContent.trim(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'home-voice-off-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/',
+    speechStub: true,
+    script: `await __qa.wait(1000); await __qa.clickId('voice-welcome-toggle');
+      const btn = document.getElementById('voice-welcome-toggle');
+      if (btn.getAttribute('aria-pressed') !== 'false') throw new Error('关闭后开关状态未更新');
+      if (btn.textContent.trim() !== '开启朗读') throw new Error('关闭后按钮文案未更新：' + btn.textContent);
+      if (speechSynthesis.speaking) throw new Error('关闭后语音未停止');
+      const saved = __qa.settings();
+      if (!saved || saved.voiceGuide !== false) throw new Error('关闭状态没有保存：' + JSON.stringify(saved));
+      return { label: btn.textContent.trim(), saved: saved.voiceGuide, speaks: __speechCalls.speak }`,
+  },
+  {
+    name: 'nav-voice-toggle-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/',
+    speechStub: true,
+    script: `await __qa.wait(900); await __qa.clickId('voice-toggle-nav');
+      const off = { pressed: document.getElementById('voice-toggle-nav').getAttribute('aria-pressed'),
+        text: document.getElementById('voice-toggle-nav').textContent.trim(), saved: __qa.settings().voiceGuide };
+      if (off.pressed !== 'false' || off.text !== '朗读关') throw new Error('导航关闭朗读异常：' + JSON.stringify(off));
+      await __qa.clickId('voice-toggle-nav');
+      const on = { pressed: document.getElementById('voice-toggle-nav').getAttribute('aria-pressed'),
+        text: document.getElementById('voice-toggle-nav').textContent.trim(), saved: __qa.settings().voiceGuide };
+      if (on.pressed !== 'true' || on.text !== '朗读开') throw new Error('导航开启朗读异常：' + JSON.stringify(on));
+      await __qa.wait(120);
+      if (!speechSynthesis.speaking) throw new Error('开启后没有朗读确认');
+      return { off, on, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'settings-simple-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome');
+      const before = __qa.id('simple-switch').getAttribute('aria-checked');
+      await __qa.clickId('simple-switch');
+      const after = __qa.id('simple-switch').getAttribute('aria-checked');
+      await __qa.clickId('settings-done');
+      await __qa.start();
+      const meta = document.querySelector('.simple-hide');
+      if (!meta) throw new Error('简洁模式下找不到被收起的次要信息');
+      const hidden = getComputedStyle(meta).display === 'none';
+      const heading = document.querySelector('#step-heading');
+      const options = document.querySelectorAll('button[aria-pressed]').length;
+      if (!hidden) throw new Error('简洁模式没有收起次要信息');
+      if (!heading || options < 3) throw new Error('简洁模式误伤了主要选项');
+      return { before, after, hidden, attrs: __qa.attrs(), options, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'settings-guided-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome');
+      await __qa.clickId('guided-switch');
+      const checked = __qa.id('guided-switch').getAttribute('aria-checked');
+      await __qa.clickId('settings-done');
+      await __qa.start();
+      const panel = document.querySelector('[aria-label="逐步操作引导"]');
+      if (!panel) throw new Error('逐步操作模式没有显示引导');
+      if (!panel.textContent.includes('0 / 1')) throw new Error('小动作完成计数不对：' + panel.textContent.slice(0, 50));
+      await __qa.clickId('guided-done');
+      const waiting = panel.textContent.includes('还没有选医院');
+      if (!waiting) throw new Error('没做到就点“我做好了”缺少提醒');
+      await __qa.pick(0);
+      const doneText = document.querySelector('[aria-label="逐步操作引导"]').textContent;
+      if (!doneText.includes('1 / 1') || !doneText.includes('小动作都做好了')) throw new Error('完成后状态不对：' + doneText.slice(0, 60));
+      return { checked, waiting, attrs: __qa.attrs(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-voice-step-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.start();
+      await __qa.wait(400);
+      if (!__speechCalls.texts.some((t) => t.includes('选择医院'))) throw new Error('开始练习后没有朗读当前步骤：' + JSON.stringify(__speechCalls.texts));
+      const first = __speechCalls.speak;
+      await __qa.clickId('voice-step-button');
+      await __qa.wait(150);
+      if (__speechCalls.speak !== first + 1) throw new Error('“朗读”按钮没有重复当前步骤');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.wait(400);
+      if (!__speechCalls.texts.some((t) => t.includes('选择科室'))) throw new Error('换步后没有朗读新步骤：' + JSON.stringify(__speechCalls.texts));
+      return { speaks: __speechCalls.speak, texts: __speechCalls.texts, heading: __qa.heading() }`,
+  },
+  {
+    name: 'sim-voice-off-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.clickId('settings-button-welcome');
+      await __qa.clickId('voice-switch');
+      if (__qa.id('voice-switch').getAttribute('aria-checked') !== 'false') throw new Error('语音开关没有关闭');
+      await __qa.clickId('settings-done');
+      await __qa.start();
+      await __qa.wait(400);
+      if (__speechCalls.speak !== 0) throw new Error('关闭语音后仍自动朗读：' + JSON.stringify(__speechCalls.texts));
+      await __qa.click('下一步');
+      await __qa.wait(400);
+      if (__speechCalls.speak !== 0) throw new Error('关闭语音后提醒仍在朗读');
+      const stepButton = Boolean(document.getElementById('voice-step-button'));
+      if (!stepButton) throw new Error('手动朗读按钮应保留');
+      return { speaks: __speechCalls.speak, stepButton, notice: __qa.notice(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-voice-notice-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.start();
+      await __qa.wait(400);
+      await __qa.click('下一步');
+      await __qa.wait(400);
+      const texts = __speechCalls.texts;
+      const notice = __qa.notice();
+      if (!texts.some((t) => t.includes('还没有选医院'))) throw new Error('纠错提醒没有优先朗读：' + JSON.stringify(texts));
+      if (!texts[texts.length - 1].includes('还没有选医院')) throw new Error('最后一次朗读不是纠错提醒：' + JSON.stringify(texts));
+      return { notice: notice.slice(0, 30), last: texts[texts.length - 1], speaks: __speechCalls.speak }`,
+  },
+
+  // ——— 第九阶段：三节独立防骗课 ———
+  {
+    name: 'fraud-refund-welcome-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!text.includes('防骗练习 · 退款骗局')) throw new Error('欢迎页缺少课程名');
+      if (!text.includes('96110')) throw new Error('欢迎页缺少咨询热线');
+      await __qa.start();
+      await __qa.wait(200);
+      const heading = __qa.heading();
+      if (heading !== '先听清这通电话') throw new Error('第一课标题不对：' + heading);
+      const links = document.querySelectorAll('.phone-scroll a[href]').length;
+      if (links !== 0) throw new Error('情境页不应有可点击链接，实际 ' + links);
+      const scene = document.querySelector('.phone-scroll').innerText;
+      if (!scene.includes('虚构')) throw new Error('缺少虚构说明');
+      return { heading, links, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-clue-find-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      if (__qa.heading() !== '找出可疑的地方') throw new Error('第二步标题不对：' + __qa.heading());
+      await __qa.click('下一步');
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('还有 3 处')) throw new Error('没找齐可疑点就放行：' + notice);
+      await __qa.clickId('clue-r1');
+      const foundOne = document.querySelector('.phone-scroll').innerText.includes('已找到 1 / 3 处');
+      await __qa.clickId('clue-r2');
+      const soft = document.querySelector('[role="status"]');
+      if (!soft || !soft.textContent.includes('本身不说明问题')) throw new Error('点正常句子没有解释');
+      if (!foundOne || !document.querySelector('.phone-scroll').innerText.includes('已找到 1 / 3 处')) {
+        throw new Error('点正常句子不应计入可疑点');
+      }
+      await __qa.clickId('clue-r3');
+      await __qa.clickId('clue-r6');
+      const done = document.body.innerText.includes('都找到了');
+      if (!done) throw new Error('找齐后没有完成提示');
+      await __qa.click('下一步');
+      const heading = __qa.heading();
+      if (heading !== '哪一种做法最安全') throw new Error('第三步标题不对：' + heading);
+      return { notice: notice.slice(0, 24), done, heading, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-wrong-action-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.clickId('clue-r1'); await __qa.clickId('clue-r3'); await __qa.clickId('clue-r6');
+      await __qa.click('下一步');
+      await __qa.pick(1);
+      const wrong = __qa.notice();
+      if (!wrong || !wrong.includes('假页面')) throw new Error('错误做法没有解释风险：' + wrong);
+      await __qa.pick(0);
+      if (__qa.notice()) throw new Error('选对后提醒没有消失：' + __qa.notice());
+      if (!document.body.innerText.includes('做得对')) throw new Error('选对后缺少肯定说明');
+      await __qa.click('下一步');
+      const heading = __qa.heading();
+      if (heading !== '现在做一遍安全操作') throw new Error('第四步标题不对：' + heading);
+      return { wrong: wrong.slice(0, 26), heading, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-drill-order-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.clickId('clue-r1'); await __qa.clickId('clue-r3'); await __qa.clickId('clue-r6');
+      await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      await __qa.clickId('drill-check');
+      const order = __qa.notice();
+      if (!order || !order.includes('先做上一步')) throw new Error('跳步没有提醒：' + order);
+      await __qa.clickId('drill-hangup');
+      await __qa.clickId('drill-check');
+      const progress = document.querySelector('.phone-scroll').innerText.includes('已完成 2 / 2 步');
+      if (!progress) throw new Error('安全操作完成计数不对');
+      await __qa.click('下一步');
+      const heading = __qa.heading();
+      if (heading !== '最后两道小测') throw new Error('第五步标题不对：' + heading);
+      return { order: order.slice(0, 24), progress, heading, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-quiz-success-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.clickId('clue-r1'); await __qa.clickId('clue-r3'); await __qa.clickId('clue-r6');
+      await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      await __qa.clickId('drill-hangup'); await __qa.clickId('drill-check'); await __qa.click('下一步');
+      await __qa.click('完成训练');
+      const blocked = __qa.notice();
+      if (!blocked || !blocked.includes('没答对')) throw new Error('没答完小测就结束：' + blocked);
+      await __qa.clickId('quiz-q1-b');
+      const wrong = __qa.notice();
+      if (!wrong || !wrong.includes('不对')) throw new Error('答错没有解释：' + wrong);
+      await __qa.clickId('quiz-q1-a');
+      await __qa.clickId('quiz-q2-a');
+      if (!document.body.innerText.includes('都答对了')) throw new Error('答完后缺少完成提示');
+      await __qa.click('完成训练');
+      await __qa.wait(250);
+      const heading = __qa.heading();
+      if (heading !== '防骗训练完成') throw new Error('完成页标题不对：' + heading);
+      const text = document.querySelector('.phone-scroll').innerText;
+      const code = (text.match(/SAFE-REFUND-\\d{6}/) || [])[0];
+      if (!code) throw new Error('完成页缺少训练编号');
+      if (!text.includes('记住这几条')) throw new Error('完成页缺少安全清单');
+      if (!text.includes('防骗训练记录')) throw new Error('完成页缺少训练记录');
+      const report = __qa.report();
+      if (!report || !report.includes('本次学习小结')) throw new Error('缺少学习小结');
+      return { blocked: blocked.slice(0, 22), wrong: wrong.slice(0, 22), code, report: report.slice(0, 60), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-official-full-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-official',
+    route: '#/simulation/fraud-official',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      if (__qa.heading() !== '先听清这通电话') throw new Error('假警察课标题不对：' + __qa.heading());
+      await __qa.click('下一步');
+      await __qa.clickId('clue-o1'); await __qa.clickId('clue-o3'); await __qa.clickId('clue-o5');
+      await __qa.click('下一步'); await __qa.pick(0); await __qa.click('下一步');
+      await __qa.clickId('drill-hangup'); await __qa.clickId('drill-call'); await __qa.click('下一步');
+      await __qa.clickId('quiz-q1-a'); await __qa.clickId('quiz-q2-a');
+      await __qa.click('完成训练');
+      await __qa.wait(250);
+      const text = document.querySelector('.phone-scroll').innerText;
+      const code = (text.match(/SAFE-OFFICIAL-\\d{6}/) || [])[0];
+      if (!code) throw new Error('假警察课完成页缺少编号');
+      if (!text.includes('真警察不会电话办案')) throw new Error('安全清单内容不对');
+      return { heading: __qa.heading(), code, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-subsidy-sms-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-subsidy',
+    route: '#/simulation/fraud-subsidy',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      const heading = __qa.heading();
+      if (heading !== '先看清这条短信') throw new Error('短信课标题不对：' + heading);
+      const links = document.querySelectorAll('.phone-scroll a[href]').length;
+      if (links !== 0) throw new Error('短信情境不应有可点击链接，实际 ' + links);
+      await __qa.click('下一步');
+      await __qa.clickId('clue-s1'); await __qa.clickId('clue-s2'); await __qa.clickId('clue-s3');
+      if (!document.querySelector('.phone-scroll').innerText.includes('已找到 3 / 3 处')) {
+        throw new Error('短信课可疑点计数不对');
+      }
+      await __qa.click('下一步'); await __qa.pick(0);
+      if (!document.body.innerText.includes('做得对')) throw new Error('短信课正确做法缺少肯定');
+      return { heading, links, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'fraud-help-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'fraud-refund',
+    route: '#/simulation/fraud-refund',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.click('我需要帮助');
+      await __qa.clickId('help-more');
+      const help = __qa.help();
+      if (!help || !help.includes('要钱、要码、要保密')) throw new Error('防骗帮助未点出三类信号：' + (help || '').slice(0, 60));
+      return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
+
+  // ——— 第十阶段：三级提示、主动引导、学习总结与练习历史 ———
+  {
+    name: 'sim-help-tiers-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(1);
+      await __qa.click('我需要帮助');
+      const tierText = () => ((document.getElementById('help-tier') || {}).textContent || '').trim();
+      const first = { tier: tierText(), text: document.getElementById('help-text').textContent };
+      if (!first.tier.includes('提示 1 / 3')) throw new Error('首档提示标识不对：' + first.tier);
+      if (!first.text.includes('选择科室')) throw new Error('第一档未给方向：' + first.text.slice(0, 60));
+      await __qa.clickId('help-more');
+      const second = { tier: tierText(), text: document.getElementById('help-text').textContent };
+      if (!second.tier.includes('提示 2 / 3')) throw new Error('第二档提示标识不对：' + second.tier);
+      if (second.text.length <= first.text.length) throw new Error('第二档没有更具体');
+      await __qa.clickId('help-more');
+      const third = { tier: tierText(), text: document.getElementById('help-text').textContent };
+      if (!third.tier.includes('提示 3 / 3')) throw new Error('第三档提示标识不对：' + third.tier);
+      if (document.getElementById('help-more')) throw new Error('第三档仍显示“再具体一点”');
+      if (!document.getElementById('help-tier-max')) throw new Error('第三档缺少“已经最具体”说明');
+      await __qa.click('我明白了，继续操作');
+      await __qa.click('我需要帮助');
+      const reset = tierText();
+      if (!reset.includes('提示 1 / 3')) throw new Error('重新打开未回到第一档：' + reset);
+      return { first: first.tier, second: second.tier, third: third.tier, reset, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-nudge-report-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.toStep(3);
+      const found = await __qa.pickDateWithFull();
+      if (!found) throw new Error('没有约满时间段可构造连续错误');
+      await __qa.pickDisabled();
+      await __qa.click('下一步');
+      await __qa.wait(260);
+      const nudge = document.getElementById('buddy-nudge');
+      if (!nudge) throw new Error('连续出错后主动提醒未出现');
+      const nudgeText = nudge.textContent.replace(/\\s+/g, ' ').trim();
+      await __qa.clickId('nudge-help');
+      await __qa.clickId('help-more');
+      await __qa.clickId('help-more');
+      const tier = ((document.getElementById('help-tier') || {}).textContent || '').trim();
+      if (!tier.includes('提示 3 / 3')) throw new Error('主动提示展开后未能升到第三档：' + tier);
+      await __qa.click('我明白了，继续操作');
+      await __qa.pickLast();
+      await __qa.click('下一步');
+      await __qa.click('确认预约');
+      await __qa.wait(340);
+      const report = __qa.report();
+      for (const required of ['主动提醒1 次', '用到手把手提示的步骤', '第 4 步 · 选择时间', '本课记住这几条', '建议把这节课再练一次']) {
+        if (!report.includes(required)) throw new Error('学习小结缺少：' + required + ' :: ' + report);
+      }
+      return { nudgeText, tier, report: report.slice(0, 180), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-nudge-idle-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.wait(21500);
+      const nudge = document.getElementById('buddy-nudge');
+      if (!nudge) throw new Error('停 20 秒后主动提醒未出现');
+      const text = nudge.textContent.replace(/\\s+/g, ' ').trim();
+      if (!text.includes('别着急')) throw new Error('主动提醒文案不对：' + text);
+      await __qa.clickId('nudge-dismiss');
+      await __qa.wait(180);
+      if (document.getElementById('buddy-nudge')) throw new Error('关闭后主动提醒仍在');
+      return { text, dismissed: true, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-report-history-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.finish();
+      const report = __qa.report();
+      for (const required of ['桥桥说：一次就做对了，真稳！', '错误操作0 次', '使用提示0 次', '主动提醒0 次', '本课记住这几条', '接着练下一课']) {
+        if (!report.includes(required)) throw new Error('学习小结缺少：' + required);
+      }
+      const next = document.querySelector('#report-next a');
+      if (!next || !next.getAttribute('href').includes('#/simulation/payment')) throw new Error('下一课推荐链接不对');
+      await __qa.click('退出');
+      await __qa.wait(260);
+      const last = document.getElementById('last-practice');
+      if (!last || !last.textContent.includes('上次练习')) throw new Error('欢迎页未显示上次练习');
+      const history = JSON.parse(localStorage.getItem('bridgeai:practice-history:v1') || '{}');
+      if (!history.appointment || history.appointment.errors !== 0) throw new Error('练习历史未保存');
+      return { last: last.textContent.replace(/\\s+/g, ' ').trim(), next: next.getAttribute('href'), overflow: __qa.overflow() }`,
   },
 ]
 
@@ -1466,6 +1949,15 @@ class Cdp {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/** 开发服务器偶尔冷启动较慢：等 React 挂载出内容再执行场景脚本。 */
+async function waitForApp(cdp) {
+  await cdp.evaluate(`for (let i = 0; i < 50; i++) {
+    if (document.getElementById('root') && document.getElementById('root').childElementCount > 0) return true
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return false`)
+}
+
 async function waitForDebugger() {
   for (let i = 0; i < 60; i += 1) {
     try {
@@ -1518,8 +2010,9 @@ async function main() {
     // 两个存储分开清理：任一存储抛异常不影响另一个的清理
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
       source: `if (!location.search.includes('reload=1')) {
-        ${STORAGE_KEYS.map((key) => `try { sessionStorage.removeItem('${key}') } catch (e) {}`).join('\n        ')}
+        ${[...STORAGE_KEYS, 'bridgeai:voice-intro:v1'].map((key) => `try { sessionStorage.removeItem('${key}') } catch (e) {}`).join('\n        ')}
         try { localStorage.removeItem('bridgeai:display:v1') } catch (e) {}
+        try { localStorage.removeItem('bridgeai:practice-history:v1') } catch (e) {}
         window.__storageCleared = true
       }
       if (location.search.includes('speechstub=1')) {
@@ -1568,6 +2061,7 @@ async function main() {
       await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}${speechFlags}${scenario.route}` })
       await loaded
       await sleep(700)
+      await waitForApp(cdp)
       await cdp.evaluate(HELPERS)
       await cdp.evaluate(`window.__qa.courseId = '${course}'; return window.__qa.courseId`)
       if (scenario.largeText) {
@@ -1597,6 +2091,7 @@ async function main() {
         await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}&reload=1${scenario.route}` })
         await reloaded
         await sleep(500)
+        await waitForApp(cdp)
         await cdp.evaluate(HELPERS)
         await cdp.evaluate(`window.__qa.courseId = '${course}'; return window.__qa.courseId`)
       }
@@ -1616,18 +2111,21 @@ async function main() {
         data = { ...(data ?? {}), ...extra }
       }
 
+      let clip = null
+      if (scenario.clip) {
+        clip = await cdp.evaluate(
+          `scrollTo({ top: 0, left: 0, behavior: 'instant' });
+           const el = document.querySelector('${scenario.clip}');
+           if (!el) return null;
+           const r = el.getBoundingClientRect();
+           return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height, scale: 1 }`,
+        )
+        if (!clip) data = { ...(data ?? {}), clipMissing: scenario.clip }
+      }
       const shot = await cdp.send('Page.captureScreenshot', {
         format: 'png',
         captureBeyondViewport: Boolean(scenario.fullPage || scenario.clip),
-        ...(scenario.clip
-          ? {
-              clip: await cdp.evaluate(
-                `scrollTo({ top: 0, left: 0, behavior: 'instant' });
-                 const r = document.querySelector('${scenario.clip}').getBoundingClientRect();
-                 return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height, scale: 1 }`,
-              ),
-            }
-          : {}),
+        ...(clip ? { clip } : {}),
       })
       const file = path.join(OUT_DIR, `${scenario.name}.png`)
       await writeFile(file, Buffer.from(shot.data, 'base64'))
