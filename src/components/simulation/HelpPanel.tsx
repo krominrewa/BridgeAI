@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BridgeBuddy, RepeatIcon, SpeakerIcon, StopIcon } from '../icons'
 import type { HelpRequest } from '../../simulation/helpRequest'
 import { requestTeaching, teachingConfigured } from '../../simulation/teachingAssistant'
+import { SPEECH_RATE_VALUES, useSettings } from '../../settings/SettingsContext'
 import { getSpeechState, speak, speechSupported, stopSpeech, subscribeSpeechState } from '../../speech/speechReader'
 
 type HelpPanelProps = {
@@ -24,6 +25,8 @@ export default function HelpPanel({ text, payload, onDismiss }: HelpPanelProps) 
   const [assist, setAssist] = useState<{ status: AssistStatus; text: string }>({ status: 'local', text })
   const [speechState, setSpeechState] = useState(getSpeechState)
   const [speechTouched, setSpeechTouched] = useState(false)
+  const { settings } = useSettings()
+  const speechRate = SPEECH_RATE_VALUES[settings.speechRate]
 
   // 配置了安全代理时异步请求 AI 指导；失败自动回退本地规则，文字提示始终先显示
   useEffect(() => {
@@ -56,12 +59,12 @@ export default function HelpPanel({ text, payload, onDismiss }: HelpPanelProps) 
   const handleToggle = () => {
     setSpeechTouched(true)
     if (speaking) stopSpeech()
-    else speak(displayedText)
+    else speak(displayedText, speechRate)
   }
 
   const handleReplay = () => {
     setSpeechTouched(true)
-    speak(displayedText)
+    speak(displayedText, speechRate)
   }
 
   return (

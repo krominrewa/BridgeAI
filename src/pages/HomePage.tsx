@@ -1,5 +1,6 @@
 import FeatureCard from '../components/FeatureCard'
 import PhoneFrame from '../components/PhoneFrame'
+import VoiceWelcome from '../components/VoiceWelcome'
 import FlowActions from '../components/simulation/FlowActions'
 import FlowProgress from '../components/simulation/FlowProgress'
 import HospitalStep from '../courses/appointment/steps/HospitalStep'
@@ -37,6 +38,8 @@ const noop = () => {}
 export default function HomePage() {
   return (
     <div>
+      <VoiceWelcome />
+
       <section className="bg-gradient-to-b from-brand-50 via-white to-lagoon-50">
         <div className="mx-auto max-w-6xl px-5 py-10 lg:py-16">
           <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-12">
@@ -53,7 +56,7 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft sm:text-xl">
-                在仿真手机里练习挂号、缴水电燃气费、打车查公交、出示医保凭证，桥桥用大白话陪您一步步完成。无账号、无支付风险，点错随时重来。
+                在仿真手机里练习挂号、缴水电燃气费、打车查公交、出示医保凭证，还能识别常见骗局。桥桥用大白话陪您一步步完成，无账号、无支付风险，点错随时重来。
               </p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

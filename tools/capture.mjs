@@ -37,8 +37,9 @@ window.__qa = {
     el.click()
     await window.__qa.wait(140)
   },
+  // 只取练习手机内容区的选项；导航的“朗读开/关”也用 aria-pressed，不能算课程选项
   choices: () =>
-    Array.from(document.querySelectorAll('button[aria-pressed]')).filter((el) => !el.closest('dialog')),
+    Array.from(document.querySelectorAll('.phone-scroll button[aria-pressed]')).filter((el) => !el.closest('dialog')),
   pick: async (index) => {
     const list = window.__qa.choices().filter((b) => b.getAttribute('aria-disabled') !== 'true')
     if (!list[index]) throw new Error('没有第 ' + index + ' 个可选项')
@@ -170,7 +171,16 @@ window.__qa = {
     font: document.documentElement.dataset.font,
     contrast: document.documentElement.dataset.contrast,
     motion: document.documentElement.dataset.motion,
+    simple: document.documentElement.dataset.simple,
+    guided: document.documentElement.dataset.guided,
   }),
+  settings: () => {
+    try {
+      return JSON.parse(localStorage.getItem('bridgeai:display:v1') || 'null')
+    } catch {
+      return null
+    }
+  },
   rootPx: () => getComputedStyle(document.documentElement).fontSize,
   dialogOpen: () => {
     const d = document.querySelector('dialog')
@@ -650,7 +660,7 @@ const SCENARIOS = [
       if (initial === 'true') await __qa.clickId('motion-switch');
       return { attrs: __qa.attrs(), switchInitial: initial,
         switchChecked: __qa.id('motion-switch').getAttribute('aria-checked'),
-        noteMentionsSystem: __qa.id('motion-note').textContent.includes('系统') }`,
+        noteMentionsSystem: __qa.id('motion-switch-note').textContent.includes('系统') }`,
   },
   {
     name: 'error-1-before-mobile',
@@ -1397,6 +1407,166 @@ const SCENARIOS = [
       if (!help.includes('药店买药')) throw new Error('场景帮助未列举场景：' + help.slice(0, 60));
       return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
   },
+
+  // ——— 第八阶段：简洁模式、逐步操作、语音引导与全站设置 ———
+  {
+    name: 'home-voice-autoplay-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/',
+    fullPage: true,
+    speechStub: true,
+    script: `for (let i = 0; i < 40 && !document.getElementById('voice-welcome-toggle'); i++) await __qa.wait(150);
+      const bar = document.getElementById('voice-welcome-toggle');
+      if (!bar) throw new Error('首页缺少朗读开关');
+      await __qa.wait(900);
+      if (bar.getAttribute('aria-pressed') !== 'true') throw new Error('朗读默认未开启');
+      if (!__speechCalls || __speechCalls.speak < 1) throw new Error('进入首页没有自动朗读');
+      if (!__speechCalls.texts.some((t) => t.includes('欢迎来到数字桥梁'))) throw new Error('欢迎语内容不对：' + JSON.stringify(__speechCalls.texts));
+      const nav = document.getElementById('voice-toggle-nav');
+      if (!nav || nav.getAttribute('aria-pressed') !== 'true') throw new Error('主导航朗读开关状态不对');
+      return { speaks: __speechCalls.speak, texts: __speechCalls.texts, nav: nav.textContent.trim(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'home-voice-off-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/',
+    speechStub: true,
+    script: `await __qa.wait(1000); await __qa.clickId('voice-welcome-toggle');
+      const btn = document.getElementById('voice-welcome-toggle');
+      if (btn.getAttribute('aria-pressed') !== 'false') throw new Error('关闭后开关状态未更新');
+      if (btn.textContent.trim() !== '开启朗读') throw new Error('关闭后按钮文案未更新：' + btn.textContent);
+      if (speechSynthesis.speaking) throw new Error('关闭后语音未停止');
+      const saved = __qa.settings();
+      if (!saved || saved.voiceGuide !== false) throw new Error('关闭状态没有保存：' + JSON.stringify(saved));
+      return { label: btn.textContent.trim(), saved: saved.voiceGuide, speaks: __speechCalls.speak }`,
+  },
+  {
+    name: 'nav-voice-toggle-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/',
+    speechStub: true,
+    script: `await __qa.wait(900); await __qa.clickId('voice-toggle-nav');
+      const off = { pressed: document.getElementById('voice-toggle-nav').getAttribute('aria-pressed'),
+        text: document.getElementById('voice-toggle-nav').textContent.trim(), saved: __qa.settings().voiceGuide };
+      if (off.pressed !== 'false' || off.text !== '朗读关') throw new Error('导航关闭朗读异常：' + JSON.stringify(off));
+      await __qa.clickId('voice-toggle-nav');
+      const on = { pressed: document.getElementById('voice-toggle-nav').getAttribute('aria-pressed'),
+        text: document.getElementById('voice-toggle-nav').textContent.trim(), saved: __qa.settings().voiceGuide };
+      if (on.pressed !== 'true' || on.text !== '朗读开') throw new Error('导航开启朗读异常：' + JSON.stringify(on));
+      await __qa.wait(120);
+      if (!speechSynthesis.speaking) throw new Error('开启后没有朗读确认');
+      return { off, on, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'settings-simple-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome');
+      const before = __qa.id('simple-switch').getAttribute('aria-checked');
+      await __qa.clickId('simple-switch');
+      const after = __qa.id('simple-switch').getAttribute('aria-checked');
+      await __qa.clickId('settings-done');
+      await __qa.start();
+      const meta = document.querySelector('.simple-hide');
+      if (!meta) throw new Error('简洁模式下找不到被收起的次要信息');
+      const hidden = getComputedStyle(meta).display === 'none';
+      const heading = document.querySelector('#step-heading');
+      const options = document.querySelectorAll('button[aria-pressed]').length;
+      if (!hidden) throw new Error('简洁模式没有收起次要信息');
+      if (!heading || options < 3) throw new Error('简洁模式误伤了主要选项');
+      return { before, after, hidden, attrs: __qa.attrs(), options, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'settings-guided-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    script: `await __qa.clickId('settings-button-welcome');
+      await __qa.clickId('guided-switch');
+      const checked = __qa.id('guided-switch').getAttribute('aria-checked');
+      await __qa.clickId('settings-done');
+      await __qa.start();
+      const panel = document.querySelector('[aria-label="逐步操作引导"]');
+      if (!panel) throw new Error('逐步操作模式没有显示引导');
+      if (!panel.textContent.includes('0 / 1')) throw new Error('小动作完成计数不对：' + panel.textContent.slice(0, 50));
+      await __qa.clickId('guided-done');
+      const waiting = panel.textContent.includes('还没有选医院');
+      if (!waiting) throw new Error('没做到就点“我做好了”缺少提醒');
+      await __qa.pick(0);
+      const doneText = document.querySelector('[aria-label="逐步操作引导"]').textContent;
+      if (!doneText.includes('1 / 1') || !doneText.includes('小动作都做好了')) throw new Error('完成后状态不对：' + doneText.slice(0, 60));
+      return { checked, waiting, attrs: __qa.attrs(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-voice-step-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.start();
+      await __qa.wait(400);
+      if (!__speechCalls.texts.some((t) => t.includes('选择医院'))) throw new Error('开始练习后没有朗读当前步骤：' + JSON.stringify(__speechCalls.texts));
+      const first = __speechCalls.speak;
+      await __qa.clickId('voice-step-button');
+      await __qa.wait(150);
+      if (__speechCalls.speak !== first + 1) throw new Error('“朗读”按钮没有重复当前步骤');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.wait(400);
+      if (!__speechCalls.texts.some((t) => t.includes('选择科室'))) throw new Error('换步后没有朗读新步骤：' + JSON.stringify(__speechCalls.texts));
+      return { speaks: __speechCalls.speak, texts: __speechCalls.texts, heading: __qa.heading() }`,
+  },
+  {
+    name: 'sim-voice-off-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.clickId('settings-button-welcome');
+      await __qa.clickId('voice-switch');
+      if (__qa.id('voice-switch').getAttribute('aria-checked') !== 'false') throw new Error('语音开关没有关闭');
+      await __qa.clickId('settings-done');
+      await __qa.start();
+      await __qa.wait(400);
+      if (__speechCalls.speak !== 0) throw new Error('关闭语音后仍自动朗读：' + JSON.stringify(__speechCalls.texts));
+      await __qa.click('下一步');
+      await __qa.wait(400);
+      if (__speechCalls.speak !== 0) throw new Error('关闭语音后提醒仍在朗读');
+      const stepButton = Boolean(document.getElementById('voice-step-button'));
+      if (!stepButton) throw new Error('手动朗读按钮应保留');
+      return { speaks: __speechCalls.speak, stepButton, notice: __qa.notice(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'sim-voice-notice-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    route: '#/simulation',
+    clip: '.phone-shell',
+    speechStub: true,
+    script: `await __qa.start();
+      await __qa.wait(400);
+      await __qa.click('下一步');
+      await __qa.wait(400);
+      const texts = __speechCalls.texts;
+      const notice = __qa.notice();
+      if (!texts.some((t) => t.includes('还没有选医院'))) throw new Error('纠错提醒没有优先朗读：' + JSON.stringify(texts));
+      if (!texts[texts.length - 1].includes('还没有选医院')) throw new Error('最后一次朗读不是纠错提醒：' + JSON.stringify(texts));
+      return { notice: notice.slice(0, 30), last: texts[texts.length - 1], speaks: __speechCalls.speak }`,
+  },
 ]
 
 async function findChrome() {
@@ -1465,6 +1635,15 @@ class Cdp {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/** 开发服务器偶尔冷启动较慢：等 React 挂载出内容再执行场景脚本。 */
+async function waitForApp(cdp) {
+  await cdp.evaluate(`for (let i = 0; i < 50; i++) {
+    if (document.getElementById('root') && document.getElementById('root').childElementCount > 0) return true
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return false`)
+}
 
 async function waitForDebugger() {
   for (let i = 0; i < 60; i += 1) {
@@ -1568,6 +1747,7 @@ async function main() {
       await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}${speechFlags}${scenario.route}` })
       await loaded
       await sleep(700)
+      await waitForApp(cdp)
       await cdp.evaluate(HELPERS)
       await cdp.evaluate(`window.__qa.courseId = '${course}'; return window.__qa.courseId`)
       if (scenario.largeText) {
@@ -1597,6 +1777,7 @@ async function main() {
         await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}&reload=1${scenario.route}` })
         await reloaded
         await sleep(500)
+        await waitForApp(cdp)
         await cdp.evaluate(HELPERS)
         await cdp.evaluate(`window.__qa.courseId = '${course}'; return window.__qa.courseId`)
       }
@@ -1616,18 +1797,21 @@ async function main() {
         data = { ...(data ?? {}), ...extra }
       }
 
+      let clip = null
+      if (scenario.clip) {
+        clip = await cdp.evaluate(
+          `scrollTo({ top: 0, left: 0, behavior: 'instant' });
+           const el = document.querySelector('${scenario.clip}');
+           if (!el) return null;
+           const r = el.getBoundingClientRect();
+           return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height, scale: 1 }`,
+        )
+        if (!clip) data = { ...(data ?? {}), clipMissing: scenario.clip }
+      }
       const shot = await cdp.send('Page.captureScreenshot', {
         format: 'png',
         captureBeyondViewport: Boolean(scenario.fullPage || scenario.clip),
-        ...(scenario.clip
-          ? {
-              clip: await cdp.evaluate(
-                `scrollTo({ top: 0, left: 0, behavior: 'instant' });
-                 const r = document.querySelector('${scenario.clip}').getBoundingClientRect();
-                 return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height, scale: 1 }`,
-              ),
-            }
-          : {}),
+        ...(clip ? { clip } : {}),
       })
       const file = path.join(OUT_DIR, `${scenario.name}.png`)
       await writeFile(file, Buffer.from(shot.data, 'base64'))

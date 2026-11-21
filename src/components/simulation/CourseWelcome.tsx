@@ -24,7 +24,7 @@ export default function CourseWelcome({ welcome, onStart }: CourseWelcomeProps) 
           </h2>
         </div>
         <p className="mt-4 text-lg leading-relaxed text-ink-soft">{welcome.lead}</p>
-        <ul className="mt-5 space-y-2.5">
+        <ul className="simple-hide mt-5 space-y-2.5">
           {welcome.points.map((point) => (
             <li
               key={point}

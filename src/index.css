@@ -128,6 +128,11 @@ html[data-motion='reduce'] *::after {
   transition-duration: 0.001ms !important;
 }
 
+/* 简洁模式：只收起次要信息，选项判断依据、纠错提醒与安全说明保持完整 */
+html[data-simple='on'] .simple-hide {
+  display: none;
+}
+
 /* 高对比度：沿用蓝绿色系，加深文字、加粗边框与焦点环；选中/完成等状态仍带图标与文字 */
 html[data-contrast='high'] .text-ink-soft {
   color: #16324f;

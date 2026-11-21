@@ -3,16 +3,17 @@ import type { Dispatch } from 'react'
 import CourseWelcome from './CourseWelcome'
 import FlowActions from './FlowActions'
 import FlowProgress from './FlowProgress'
+import GuidedPanel from './GuidedPanel'
 import HelpPanel from './HelpPanel'
 import LearningReport from './LearningReport'
 import NoticeBar from './NoticeBar'
-import { BridgeBuddy, SettingsIcon } from '../icons'
+import { BridgeBuddy, SettingsIcon, SpeakerIcon } from '../icons'
 import { hrefFor } from '../../router'
 import type { CourseEngine, WelcomeContent } from '../../simulation/courseFlow'
 import type { FlowActionBase, FlowBase } from '../../simulation/flowKit'
 import { buildLearningReport } from '../../simulation/learningReport'
-import { useSettings } from '../../settings/SettingsContext'
-import { stopSpeech } from '../../speech/speechReader'
+import { SPEECH_RATE_VALUES, useSettings } from '../../settings/SettingsContext'
+import { speak, speechSupported, stopSpeech } from '../../speech/speechReader'
 
 type CourseShellProps<S extends FlowBase, X extends { type: string }> = {
   engine: CourseEngine<S, X>
@@ -36,7 +37,11 @@ export default function CourseShell<S extends FlowBase, X extends { type: string
   const lastStep = useRef(state.step)
   const wasStarted = useRef(state.started)
   const noticeRef = useRef<HTMLDivElement>(null)
-  const { setOpen } = useSettings()
+  const { settings, setOpen } = useSettings()
+  const speechRate = SPEECH_RATE_VALUES[settings.speechRate]
+  const voiceLine =
+    engine.voiceLine?.(state) ?? `第 ${state.step + 1} 步，共 ${engine.titles.length} 步：${engine.titles[state.step]}。`
+  const tasks = engine.tasks?.(state) ?? []
 
   // 欢迎页与练习流程切换时，把焦点交给新出现的主要操作，避免键盘焦点丢回页面顶部
   useEffect(() => {
@@ -44,7 +49,10 @@ export default function CourseShell<S extends FlowBase, X extends { type: string
     const justExited = wasStarted.current && !state.started
     wasStarted.current = state.started
     if (justStarted) document.getElementById('step-heading')?.focus()
-    if (justExited) document.getElementById('start-simulation')?.focus()
+    if (justExited) {
+      stopSpeech()
+      document.getElementById('start-simulation')?.focus()
+    }
   }, [state.started])
 
   // 换步骤后停止旧朗读，并把焦点交给新步骤的标题，键盘与读屏用户不用从头 Tab
@@ -63,6 +71,23 @@ export default function CourseShell<S extends FlowBase, X extends { type: string
     }
   }, [state.noticeSeq, state.notice])
 
+  // 语音引导：开启后换步自动朗读；只依赖步骤与开始状态，选选项时不会反复出声
+  useEffect(() => {
+    if (!settings.voiceGuide || !speechSupported || !state.started || finished) return
+    speak(voiceLine, speechRate)
+  }, [state.step, state.started])
+
+  // 纠错提醒比步骤说明更急，出现时优先朗读提醒
+  useEffect(() => {
+    if (!settings.voiceGuide || !speechSupported || !state.started || !state.notice) return
+    speak(state.notice, speechRate)
+  }, [state.noticeSeq])
+
+  // 打开帮助面板时停止自动朗读，避免和面板里的“读给我听”抢声音
+  useEffect(() => {
+    if (state.help) stopSpeech()
+  }, [state.help])
+
   if (!state.started) {
     return <CourseWelcome welcome={welcome} onStart={() => dispatch({ type: 'start' })} />
   }
@@ -71,6 +96,10 @@ export default function CourseShell<S extends FlowBase, X extends { type: string
     <>
       <div className="phone-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-3">
         <FlowProgress step={state.step} titles={engine.titles} successStep={engine.successStep} />
+
+        {settings.guided && !finished && tasks.length > 0 ? (
+          <GuidedPanel key={state.step} state={state} tasks={tasks} />
+        ) : null}
 
         {finished ? null : (
           <>
@@ -100,6 +129,20 @@ export default function CourseShell<S extends FlowBase, X extends { type: string
                 </span>
                 显示与辅助
               </button>
+              {speechSupported ? (
+                <button
+                  type="button"
+                  id="voice-step-button"
+                  onClick={() => speak(voiceLine, speechRate)}
+                  aria-label="朗读当前这一步"
+                  className="btn btn-help shrink-0 px-3"
+                >
+                  <span className="h-6 w-6">
+                    <SpeakerIcon />
+                  </span>
+                  朗读
+                </button>
+              ) : null}
             </div>
             {state.help ? (
               <HelpPanel
