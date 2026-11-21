@@ -1,14 +1,13 @@
-import { buildLearningReport } from '../../simulation/learningReport'
-import type { FlowState } from '../../simulation/appointmentState'
+import type { LearningReportData } from '../../simulation/learningReport'
 import { CheckIcon } from '../icons'
 
 type LearningReportProps = {
-  state: FlowState
+  report: LearningReportData
+  /** 各课程对“什么算一次错误操作”的说明，口径要和本课的实际提醒一致。 */
+  note: string
 }
 
-export default function LearningReport({ state }: LearningReportProps) {
-  const report = buildLearningReport(state)
-
+export default function LearningReport({ report, note }: LearningReportProps) {
   return (
     <section
       aria-labelledby="learning-report-title"
@@ -67,10 +66,7 @@ export default function LearningReport({ state }: LearningReportProps) {
         </p>
       )}
 
-      <p className="mt-3 text-base leading-relaxed text-ink-soft">
-        “错误操作”指漏选内容就点“下一步”，或点了已约满的时间；同一提醒连续重复点击只记 1 次。
-        练习中出错很正常，再练一次会更熟练。
-      </p>
+      <p className="mt-3 text-base leading-relaxed text-ink-soft">{note}</p>
     </section>
   )
 }

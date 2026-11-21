@@ -16,7 +16,15 @@ const PORT = 9333
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
 const OUT_DIR = process.argv[2] ?? 'screenshots/run'
 const FILTER = process.argv[3] ?? ''
-const STORAGE_KEY = 'bridgeai:appointment:v1'
+/** 每门课的存储键与确认按钮文案，供场景脚本按课程驱动流程。 */
+const COURSES = {
+  appointment: { key: 'bridgeai:appointment:v1', confirm: '确认预约' },
+  payment: { key: 'bridgeai:payment:v1', confirm: '确认缴费' },
+  transit: { key: 'bridgeai:transit:v1', confirm: '确认行程' },
+  insurance: { key: 'bridgeai:insurance:v1', confirm: '出示凭证' },
+}
+const STORAGE_KEYS = Object.values(COURSES).map((course) => course.key)
+const STORAGE_KEY = COURSES.appointment.key
 
 const HELPERS = `
 window.__qa = {
@@ -65,7 +73,7 @@ window.__qa = {
       }))
   },
   start: async () => {
-    sessionStorage.removeItem('${STORAGE_KEY}')
+    sessionStorage.removeItem(window.__qa.storageKey())
     const btn = document.getElementById('start-simulation')
     if (!btn) throw new Error('欢迎页没有开始按钮')
     btn.click()
@@ -87,6 +95,69 @@ window.__qa = {
     await window.__qa.toStep(4)
     await window.__qa.click('确认预约')
     await window.__qa.wait(260)
+  },
+  courseId: 'appointment',
+  courses: ${JSON.stringify(COURSES)},
+  storageKey: () => window.__qa.courses[window.__qa.courseId].key,
+  confirmLabel: () => window.__qa.courses[window.__qa.courseId].confirm,
+  setInput: (id, value) => {
+    const el = document.getElementById(id)
+    if (!el) throw new Error('找不到输入框：' + id)
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    setter.call(el, value)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    return true
+  },
+  verifySms: async () => {
+    if (!document.getElementById('send-code')) {
+      await window.__qa.autoPick()
+      await window.__qa.wait(140)
+    }
+    await window.__qa.click('获取验证码')
+    await window.__qa.wait(140)
+    const code = (document.getElementById('sms-code') || {}).textContent || ''
+    if (!/^\\d{6}$/.test(code)) throw new Error('没读到模拟短信里的验证码：' + code)
+    window.__qa.setInput('code-input', code)
+    await window.__qa.wait(140)
+    return code
+  },
+  /** 每个还没人选中、且允许选的选择组点第一项；依赖组（先日期后时段）下一轮补齐。 */
+  autoPick: async (rounds = 5) => {
+    for (let round = 0; round < rounds; round += 1) {
+      const pending = Array.from(document.querySelectorAll('[data-choice-group]')).find((box) => {
+        const buttons = Array.from(box.querySelectorAll('button[aria-pressed]'))
+        return buttons.length > 0 && !buttons.some((b) => b.getAttribute('aria-pressed') === 'true')
+      })
+      if (!pending) return true
+      const target = Array.from(pending.querySelectorAll('button[aria-pressed]')).find(
+        (b) => b.getAttribute('aria-disabled') !== 'true',
+      )
+      if (!target) return false
+      target.click()
+      await window.__qa.wait(150)
+    }
+    return true
+  },
+  /** 通用推进：按当前课程的选项结构一路点到第 target 步。 */
+  advance: async (target) => {
+    sessionStorage.removeItem(window.__qa.storageKey())
+    const btn = document.getElementById('start-simulation')
+    if (!btn) throw new Error('欢迎页没有开始按钮')
+    btn.click()
+    await window.__qa.wait(200)
+    for (let i = 0; i < target; i++) {
+      await window.__qa.autoPick()
+      if (document.getElementById('send-code')) await window.__qa.verifySms()
+      await window.__qa.click('下一步')
+      if (window.__qa.notice()) throw new Error('第 ' + i + ' 步推进被拦下：' + window.__qa.notice())
+    }
+    return window.__qa.heading()
+  },
+  finishAny: async () => {
+    await window.__qa.advance(4)
+    await window.__qa.click(window.__qa.confirmLabel())
+    await window.__qa.wait(280)
+    return window.__qa.heading()
   },
   id: (i) => document.getElementById(i),
   clickId: async (i) => {
@@ -999,6 +1070,333 @@ const SCENARIOS = [
       if (!document.getElementById('speech-toggle')) throw new Error('降级后朗读按钮丢失');
       return { badge: document.getElementById('help-source').textContent, text: text.slice(0, 80), overflow: __qa.overflow() }`,
   },
+
+  // ——— 第六阶段：缴费 / 出行 / 医保三门新课程 ———
+  {
+    name: 'learning-four-courses-desktop',
+    width: 1440,
+    height: 900,
+    route: '#/learning',
+    fullPage: true,
+    script: `const cards = document.querySelectorAll('article.surface-card').length;
+      const upcoming = document.body.innerText.includes('筹备中');
+      const links = Array.from(document.querySelectorAll('a[href*="#/simulation/"]')).map((a) => a.getAttribute('href'));
+      if (cards !== 4) throw new Error('学习中心应有 4 张课程卡，实际 ' + cards);
+      if (upcoming) throw new Error('仍有“筹备中”占位文案');
+      return { cards, links, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-welcome-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `const start = document.getElementById('start-simulation');
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!start) throw new Error('缴费课没有开始按钮');
+      if (!text.includes('模拟缴费')) throw new Error('欢迎页没有课程名');
+      return { overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-bill-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.advance(2);
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!text.includes('应缴合计')) throw new Error('账单页缺少合计金额');
+      return { heading: __qa.heading(), hasTotal: text.includes('应缴合计'), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-error-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('还没有选缴哪种费用')) throw new Error('漏选类型没有提醒：' + notice);
+      return { notice, focusOnNotice: __qa.noticeFocus(), placement: __qa.noticePlacement() }`,
+  },
+  {
+    name: 'payment-amount-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.advance(3);
+      await __qa.autoPick();
+      const pressed = __qa.choices().filter((b) => b.getAttribute('aria-pressed') === 'true').length;
+      if (pressed < 2) throw new Error('金额与缴费方式应各有一项被选中，实际 ' + pressed);
+      return { heading: __qa.heading(), selected: pressed, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-success-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.finishAny();
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!text.includes('模拟缴费成功')) throw new Error('没有到达缴费成功页');
+      if (!/JF\\d{8}-\\d{4}/.test(text)) throw new Error('缴费凭证号缺失');
+      return { heading: __qa.heading(), receipt: (text.match(/JF\\d{8}-\\d{4}/) || [])[0], report: __qa.report(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-help-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.advance(1);
+      await __qa.click('我需要帮助');
+      const help = __qa.help();
+      if (!help.includes('户号')) throw new Error('缴费课帮助未解释户号：' + help.slice(0, 60));
+      return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-refresh-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.advance(3); return { beforeReload: __qa.heading() }`,
+    reload: true,
+    check: `return { afterReload: __qa.heading(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'payment-xl-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'payment',
+    largeText: '24px',
+    route: '#/simulation/payment',
+    clip: '.phone-shell',
+    script: `await __qa.advance(3);
+      const ps = document.querySelector('.phone-scroll');
+      const wide = __qa.wide();
+      if (wide.length) throw new Error('特大字号横向溢出：' + JSON.stringify(wide));
+      return { heading: __qa.heading(), phoneOverflow: ps.scrollWidth - ps.clientWidth, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'transit-taxi-success-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'transit',
+    route: '#/simulation/transit',
+    clip: '.phone-shell',
+    script: `await __qa.finishAny();
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!text.includes('叫车成功')) throw new Error('没有到达叫车成功页');
+      if (!text.includes('上车前请核对')) throw new Error('缺少车牌核对提醒');
+      return { heading: __qa.heading(), plate: (text.match(/模拟 [A-H]\\d{4}/) || [])[0], report: __qa.report(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'transit-bus-success-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'transit',
+    route: '#/simulation/transit',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.pick(1); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.autoPick();
+      const routeNotice = __qa.notice();
+      await __qa.click('下一步');
+      await __qa.click('确认行程'); await __qa.wait(280);
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (routeNotice) throw new Error('线路选择被拦下：' + routeNotice);
+      if (!text.includes('行程已生成')) throw new Error('没有到达公交完成页');
+      if (!text.includes('坐过站')) throw new Error('缺少到站提醒');
+      return { heading: __qa.heading(), firstLast: text.includes('首班') || text.includes('末班'), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'transit-unsafe-pickup-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'transit',
+    route: '#/simulation/transit',
+    clip: '.phone-shell',
+    script: `await __qa.advance(2);
+      await __qa.pickDisabled();
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('马路中间')) throw new Error('不安全上车点没有提醒：' + notice);
+      return { heading: __qa.heading(), notice, focusOnNotice: __qa.noticeFocus() }`,
+  },
+  {
+    name: 'transit-no-car-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'transit',
+    route: '#/simulation/transit',
+    clip: '.phone-shell',
+    script: `await __qa.advance(3);
+      await __qa.pickDisabled();
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('没有同路的车主')) throw new Error('约不到的车没有提醒：' + notice);
+      return { heading: __qa.heading(), notice, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'transit-help-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'transit',
+    route: '#/simulation/transit',
+    clip: '.phone-shell',
+    script: `await __qa.advance(2);
+      await __qa.click('我需要帮助');
+      const help = __qa.help();
+      if (!help.includes('马路中间')) throw new Error('上车点帮助缺少安全说明：' + help.slice(0, 60));
+      return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'transit-switch-course-desktop',
+    width: 1440,
+    height: 900,
+    course: 'transit',
+    route: '#/simulation/transit',
+    fullPage: true,
+    script: `const links = Array.from(document.querySelectorAll('aside a[href*="#/simulation/"]')).map((a) => a.getAttribute('href'));
+      if (links.length !== 3) throw new Error('侧栏换课链接应为 3 条，实际 ' + links.length);
+      return { links, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-intro-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      if (!text.includes('都是骗子')) throw new Error('首页缺少防骗提醒');
+      await __qa.click('下一步');
+      return { heading: __qa.heading(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-verify-sms-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.advance(3);
+      const before = __qa.notice();
+      await __qa.click('下一步');
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('验证码')) throw new Error('未验证就放行：' + notice);
+      await __qa.verifySms();
+      await __qa.click('下一步');
+      if (__qa.notice()) throw new Error('验证码正确仍被拦下：' + __qa.notice());
+      return { before, notice, heading: __qa.heading(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-wrong-code-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.advance(3);
+      await __qa.verifySms();
+      __qa.setInput('code-input', '000000');
+      await __qa.wait(120);
+      await __qa.click('下一步');
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('不一致')) throw new Error('错填验证码没有纠错提示：' + notice);
+      return { notice, focusOnNotice: __qa.noticeFocus(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-face-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.start();
+      await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(0); await __qa.click('下一步');
+      await __qa.pick(1);
+      await __qa.click('下一步');
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('刷脸')) throw new Error('未刷脸应提醒：' + notice);
+      await __qa.click('开始刷脸');
+      await __qa.click('下一步');
+      if (__qa.notice()) throw new Error('刷脸后仍被拦下：' + __qa.notice());
+      return { notice, heading: __qa.heading(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-evidence-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.finishAny();
+      const text = document.querySelector('.phone-scroll').innerText.replace(/\\s+/g, ' ');
+      const cells = document.querySelectorAll('svg rect').length;
+      if (cells < 40) throw new Error('凭证二维码没有画出来，方块数 ' + cells);
+      if (!text.includes('最近的使用记录')) throw new Error('缺少使用记录');
+      return { heading: __qa.heading(), cells, code: (text.match(/H32\\d{8}/) || [])[0], report: __qa.report(), overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-unbound-user-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.advance(2);
+      await __qa.pickDisabled();
+      const notice = __qa.notice();
+      if (!notice || !notice.includes('不能代出示')) throw new Error('未绑定家人没有提醒：' + notice);
+      return { heading: __qa.heading(), notice, overflow: __qa.overflow() }`,
+  },
+  {
+    name: 'insurance-help-mobile',
+    width: 390,
+    height: 844,
+    mobile: true,
+    course: 'insurance',
+    route: '#/simulation/insurance',
+    clip: '.phone-shell',
+    script: `await __qa.advance(1);
+      await __qa.click('我需要帮助');
+      const help = __qa.help();
+      if (!help.includes('药店买药')) throw new Error('场景帮助未列举场景：' + help.slice(0, 60));
+      return { heading: __qa.heading(), help: help.slice(0, 80), overflow: __qa.overflow() }`,
+  },
 ]
 
 async function findChrome() {
@@ -1120,7 +1518,7 @@ async function main() {
     // 两个存储分开清理：任一存储抛异常不影响另一个的清理
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
       source: `if (!location.search.includes('reload=1')) {
-        try { sessionStorage.removeItem('${STORAGE_KEY}') } catch (e) {}
+        ${STORAGE_KEYS.map((key) => `try { sessionStorage.removeItem('${key}') } catch (e) {}`).join('\n        ')}
         try { localStorage.removeItem('bridgeai:display:v1') } catch (e) {}
         window.__storageCleared = true
       }
@@ -1166,10 +1564,12 @@ async function main() {
       const loaded = cdp.once('Page.loadEventFired')
       // 加查询参数强制整页加载：仅 hash 变化时 Chrome 不会触发 load 事件
       const speechFlags = `${scenario.speechStub ? '&speechstub=1' : ''}${scenario.noSpeech ? '&nospeech=1' : ''}`
+      const course = scenario.course ?? 'appointment'
       await cdp.send('Page.navigate', { url: `${BASE}/?qa=${scenario.name}${speechFlags}${scenario.route}` })
       await loaded
       await sleep(700)
       await cdp.evaluate(HELPERS)
+      await cdp.evaluate(`window.__qa.courseId = '${course}'; return window.__qa.courseId`)
       if (scenario.largeText) {
         await cdp.evaluate(`document.documentElement.style.fontSize = '${scenario.largeText}'`)
         await sleep(300)
@@ -1198,6 +1598,7 @@ async function main() {
         await reloaded
         await sleep(500)
         await cdp.evaluate(HELPERS)
+        await cdp.evaluate(`window.__qa.courseId = '${course}'; return window.__qa.courseId`)
       }
       if (scenario.keys) {
         for (const key of scenario.keys) {

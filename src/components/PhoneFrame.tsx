@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { ArrowLeftIcon } from './icons'
 
 type PhoneFrameProps = {
+  /** 顶栏中间显示的课程名，例如“模拟挂号”。 */
+  label: string
   title: string
   children: ReactNode
   onExit?: () => void
@@ -14,7 +16,7 @@ function clockText(): string {
   return `${pad(now.getHours())}:${pad(now.getMinutes())}`
 }
 
-export default function PhoneFrame({ title, children, onExit, preview = false }: PhoneFrameProps) {
+export default function PhoneFrame({ label, title, children, onExit, preview = false }: PhoneFrameProps) {
   return (
     <div className="phone-shell mx-auto flex w-full min-h-0 flex-1 flex-col lg:max-w-[380px] lg:flex-none lg:min-h-[auto]">
       {/* 桌面：精致手机外框；移动：去外框的全屏应用布局（首页预览保留轻卡片边） */}
@@ -53,7 +55,7 @@ export default function PhoneFrame({ title, children, onExit, preview = false }:
             ) : (
               <span className="min-h-[44px] w-[76px]" aria-hidden="true" />
             )}
-            <p className="flex-1 text-center text-[17px] font-bold text-ink">模拟挂号</p>
+            <p className="flex-1 text-center text-[17px] font-bold text-ink">{label}</p>
             <span className="badge bg-lagoon-50 px-[10px] text-[15px] text-lagoon-800">{preview ? '界面预览' : '练习模式'}</span>
           </div>
           <span className="sr-only">{title}</span>

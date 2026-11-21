@@ -3,13 +3,7 @@
  * 密钥只存在于服务端（见 server/teaching-proxy.mjs），前端永远不接触密钥。
  * 未配置代理、请求失败或超时一律回退到本地规则提示，练习不受影响。
  */
-import { helpRequest, STEP_TITLES, type FlowState } from './appointmentState'
-import { requestHelp, type HelpRequest } from './helpProvider'
-
-export type TeachingRequest = HelpRequest & {
-  stepTitle: string
-  notice: string | null
-}
+import type { HelpRequest } from './helpRequest'
 
 export type TeachingResult = {
   text: string
@@ -24,17 +18,8 @@ export const teachingConfigured = endpoint.length > 0
 const TIMEOUT_MS = 8000
 const MAX_TEXT_LENGTH = 600
 
-export function buildTeachingRequest(state: FlowState): TeachingRequest {
-  return {
-    ...helpRequest(state),
-    stepTitle: STEP_TITLES[state.step] ?? '',
-    notice: state.notice,
-  }
-}
-
-export async function requestTeaching(request: TeachingRequest): Promise<TeachingResult> {
-  const local = requestHelp(request)
-  if (!teachingConfigured) return { text: local, source: 'local' }
+export async function requestTeaching(request: HelpRequest, localText: string): Promise<TeachingResult> {
+  if (!teachingConfigured) return { text: localText, source: 'local' }
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
@@ -45,16 +30,16 @@ export async function requestTeaching(request: TeachingRequest): Promise<Teachin
       body: JSON.stringify(request),
       signal: controller.signal,
     })
-    if (!response.ok) return { text: local, source: 'local' }
+    if (!response.ok) return { text: localText, source: 'local' }
     const data: unknown = await response.json()
     const text =
       typeof data === 'object' && data !== null && typeof (data as { text?: unknown }).text === 'string'
         ? (data as { text: string }).text.trim()
         : ''
-    if (!text || text.length > MAX_TEXT_LENGTH) return { text: local, source: 'local' }
+    if (!text || text.length > MAX_TEXT_LENGTH) return { text: localText, source: 'local' }
     return { text, source: 'ai' }
   } catch {
-    return { text: local, source: 'local' }
+    return { text: localText, source: 'local' }
   } finally {
     clearTimeout(timer)
   }

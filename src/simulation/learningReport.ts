@@ -1,4 +1,4 @@
-import { CONFIRM_STEP, STEP_TITLES, SUCCESS_STEP, TOTAL_STEPS, type FlowState } from './appointmentState'
+import type { FlowBase } from './flowKit'
 
 export type ReviewItem = {
   title: string
@@ -15,6 +15,12 @@ export type LearningReportData = {
   review: ReviewItem[]
 }
 
+export type ReportRules = {
+  titles: string[]
+  confirmStep: number
+  successStep: number
+}
+
 function formatDuration(ms: number): string {
   const seconds = Math.max(1, Math.round(ms / 1000))
   if (seconds < 60) return `${seconds} 秒`
@@ -29,22 +35,23 @@ function clockText(timestamp: number): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-export function buildLearningReport(state: FlowState): LearningReportData {
+export function buildLearningReport(state: FlowBase, rules: ReportRules): LearningReportData {
   const { startedAt, finishedAt, errors, hints, byStep } = state.stats
+  const { titles, confirmStep, successStep } = rules
   const review: ReviewItem[] = []
 
-  for (let step = 0; step <= CONFIRM_STEP; step += 1) {
+  for (let step = 0; step <= confirmStep; step += 1) {
     const item = byStep[step]
     if (!item || (item.errors === 0 && item.hints === 0)) continue
     const parts: string[] = []
     if (item.errors > 0) parts.push(`${item.errors} 次漏选或点错`)
     if (item.hints > 0) parts.push(`用了 ${item.hints} 次帮助`)
-    review.push({ title: `第 ${step + 1} 步 · ${STEP_TITLES[step]}`, reason: parts.join('，') })
+    review.push({ title: `第 ${step + 1} 步 · ${titles[step]}`, reason: parts.join('，') })
   }
 
   return {
-    completedSteps: state.step >= SUCCESS_STEP ? TOTAL_STEPS : state.step,
-    totalSteps: TOTAL_STEPS,
+    completedSteps: state.step >= successStep ? titles.length : state.step,
+    totalSteps: titles.length,
     durationText: startedAt !== null && finishedAt !== null ? formatDuration(finishedAt - startedAt) : '未记录',
     finishedAtText: finishedAt !== null ? clockText(finishedAt) : '未记录',
     errors,

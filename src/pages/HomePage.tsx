@@ -2,11 +2,11 @@ import FeatureCard from '../components/FeatureCard'
 import PhoneFrame from '../components/PhoneFrame'
 import FlowActions from '../components/simulation/FlowActions'
 import FlowProgress from '../components/simulation/FlowProgress'
-import HospitalStep from '../components/simulation/steps/HospitalStep'
+import HospitalStep from '../courses/appointment/steps/HospitalStep'
 import { ArrowRightIcon, BridgeBuddy, ChartIcon, CheckIcon, PhoneIcon } from '../components/icons'
 import { HOSPITALS } from '../data/appointment'
 import { hrefFor } from '../router'
-import { initialFlowState } from '../simulation/appointmentState'
+import { CONFIRM_STEP, initialFlowState, STEP_TITLES, SUCCESS_STEP } from '../courses/appointment/state'
 
 const FEATURES = [
   {
@@ -53,7 +53,7 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft sm:text-xl">
-                在仿真手机里练习预约挂号等数字生活技能，桥桥用大白话陪您一步步完成。无账号、无支付风险，点错随时重来。
+                在仿真手机里练习挂号、缴水电燃气费、打车查公交、出示医保凭证，桥桥用大白话陪您一步步完成。无账号、无支付风险，点错随时重来。
               </p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -73,13 +73,13 @@ export default function HomePage() {
               {/* 预览复用真实练习组件；fieldset disabled 使内部按钮不可聚焦、不可点击 */}
               <div className="pointer-events-none select-none" aria-hidden="true">
                 <fieldset disabled className="m-0 min-w-0 border-0 p-0 [&_button:disabled]:opacity-100">
-                  <PhoneFrame title="模拟手机预览" preview>
+                  <PhoneFrame label="模拟挂号" title="模拟手机预览" preview>
                     <div className="phone-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-4">
-                      <FlowProgress step={0} />
+                      <FlowProgress step={0} titles={STEP_TITLES} successStep={SUCCESS_STEP} />
                       <HospitalStep state={PREVIEW_STATE} dispatch={noop} />
                     </div>
                     <div className="border-t border-brand-100 bg-white px-4 py-3">
-                      <FlowActions step={0} onPrev={noop} onNext={noop} />
+                      <FlowActions step={0} confirmStep={CONFIRM_STEP} confirmLabel="确认预约" onPrev={noop} onNext={noop} />
                     </div>
                   </PhoneFrame>
                 </fieldset>
@@ -123,7 +123,7 @@ export default function HomePage() {
           <div>
             <h2 className="text-2xl font-bold sm:text-3xl">现在开始，迈出第一步</h2>
             <p className="mt-2 text-lg text-brand-100">
-              第一节情景课：模拟预约挂号，约 10 分钟，不需要任何账号。
+              四节情景课已全部开放：挂号、缴费、出行、医保。每节约 10 分钟，不需要任何账号。
             </p>
           </div>
           <a

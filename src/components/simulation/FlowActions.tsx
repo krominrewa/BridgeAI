@@ -1,14 +1,15 @@
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from '../icons'
-import { CONFIRM_STEP } from '../../simulation/appointmentState'
 
 type FlowActionsProps = {
   step: number
+  confirmStep: number
+  confirmLabel: string
   onPrev: () => void
   onNext: () => void
 }
 
-export default function FlowActions({ step, onPrev, onNext }: FlowActionsProps) {
-  const isConfirm = step === CONFIRM_STEP
+export default function FlowActions({ step, confirmStep, confirmLabel, onPrev, onNext }: FlowActionsProps) {
+  const isConfirm = step === confirmStep
 
   return (
     <div className="flex flex-wrap gap-3">
@@ -21,7 +22,7 @@ export default function FlowActions({ step, onPrev, onNext }: FlowActionsProps) 
         </button>
       ) : null}
       <button type="button" onClick={onNext} className="btn btn-primary min-h-[56px] flex-1 gap-2 px-3 text-lg">
-        {isConfirm ? '确认预约' : '下一步'}
+        {isConfirm ? confirmLabel : '下一步'}
         <span className="h-[22px] w-[22px]">{isConfirm ? <CheckIcon /> : <ArrowRightIcon />}</span>
       </button>
     </div>
